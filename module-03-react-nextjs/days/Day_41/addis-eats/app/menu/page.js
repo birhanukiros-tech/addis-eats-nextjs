@@ -83,8 +83,7 @@ export default async function MenuPage({ searchParams }) {
       {/* =================================
           SEARCH + DISHES
       ================================= */}
-
-      <FilterShall dishes={filteredDishes} />
+      <FilterShall dishes={filteredDishes} category={selectedCategory} />
     </section>
   );
 }

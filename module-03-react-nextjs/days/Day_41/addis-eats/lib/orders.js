@@ -1,17 +1,22 @@
-const orders = new Map();
+const globalForOrders = globalThis;
+
+globalForOrders.addisEatsOrders ??= new Map();
+
+const orders = globalForOrders.addisEatsOrders;
 
 export function saveOrder(order) {
-  orders.set(order.id, order);
+  orders.set(String(order.id), order);
 
   return order;
 }
 
 export function getOrder(orderId) {
-  return orders.get(orderId);
+  return orders.get(String(orderId));
 }
 
 export function updateOrder(orderId, updates) {
-  const order = orders.get(orderId);
+  const key = String(orderId);
+  const order = orders.get(key);
 
   if (!order) {
     return null;
@@ -22,7 +27,7 @@ export function updateOrder(orderId, updates) {
     ...updates,
   };
 
-  orders.set(orderId, updatedOrder);
+  orders.set(key, updatedOrder);
 
   return updatedOrder;
 }

@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+## Day 41 — SWR Query Key and Cache Decisions
 
-## Getting Started
+### Menu Query Key
 
-First, run the development server:
+The normal menu uses a query key containing the current page, page size, and category:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+`/api/dishes?page=${page}&limit=6&category=${category}`
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This makes different pages and categories separate SWR cache entries.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### Search Query Key
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+When the user enters a search term, the search query key contains:
 
-## Learn More
+`/api/dishes?search=${search}&page=${page}&limit=6&category=${category}`
 
-To learn more about Next.js, take a look at the following resources:
+The search term, page number, page size, and category are therefore part of the cache key.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+For example, these are different queries:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+* `/api/dishes?search=shi&page=1&limit=6`
+* `/api/dishes?search=shi&page=2&limit=6`
+* `/api/dishes?search=tib&page=1&limit=6`
 
-## Deploy on Vercel
+### Debouncing
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The search input uses a 300ms debounce. This prevents a request from being sent for every keystroke.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The request is made only after the user stops typing for approximately 300ms.
+
+### Null Search Key
+
+When there is no search term, the search key is `null`.
+
+This tells SWR not to run the separate search request when the user is simply browsing the normal menu.
+
+### fallbackData
+
+The server already loads the dishes and passes them to the client menu component.
+
+SWR uses this server-rendered data as `fallbackData`, allowing the dishes to appear immediately on the first paint without waiting for the client-side request.
+
+### keepPreviousData
+
+`keepPreviousData: true` keeps the previous results visible while a new search or page is being requested.
+
+This prevents the menu from flashing empty content during a transition such as changing from `shi` to `tib`.
+
+### Cache Deduplication
+
+SWR does not use `staleTime` like TanStack Query.
+
+Instead, this project uses:
+
+`dedupingInterval: 30000`
+
+This prevents duplicate requests for the same SWR key within 30 seconds.
+
+The menu data does not need to be repeatedly requested during a short browsing session.
+
+### Pagination
+
+The API supports `page` and `limit` parameters.
+
+The menu requests six dishes per page and displays Previous/Next controls based on the pagination information returned by the API.
+
+### Polling Order Status
+
+The order-status page uses:
+
+`refreshInterval: 5000`
+
+This causes SWR to check the order API every five seconds.
+
+The order is also passed as `fallbackData`, so the server-rendered order is displayed immediately before client polling begins.
