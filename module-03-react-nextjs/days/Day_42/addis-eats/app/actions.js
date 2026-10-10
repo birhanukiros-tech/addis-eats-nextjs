@@ -1,5 +1,6 @@
 "use server";
 
+import { getDishes } from "@/lib/dishes";
 import { revalidatePath } from "next/cache";
 import { orderSchema } from "@/lib/validations";
 import {
@@ -68,7 +69,6 @@ export async function placeOrder(previousState, formData) {
 
     result.error.issues.forEach((issue) => {
       const fieldName = issue.path[0];
-
       fieldErrors[fieldName] = issue.message;
     });
 
@@ -78,17 +78,59 @@ export async function placeOrder(previousState, formData) {
     };
   }
 
+  const cartItems = JSON.parse(formData.get("items") || "[]");
+
+  const dishes = await getDishes();
+
+  const items = cartItems.map((item) => {
+    const dish = dishes.find(
+      (dish) => String(dish.id) === String(item.id)
+    );
+
+    if (!dish) {
+      throw new Error(`Dish not found: ${item.id}`);
+    }
+
+    return {
+      id: dish.id,
+      name: dish.name,
+      price: dish.price,
+      quantity: Number(item.quantity),
+    };
+  });
+
+  const subtotal = items.reduce(
+  (sum, item) => sum + item.price * item.quantity,
+  0
+);
+
+console.log("DEBUG ITEMS:", items);
+console.log("DEBUG SUBTOTAL:", subtotal);
+
+const deliveryFee = 100;
+const total = subtotal + deliveryFee;
+
+console.log("DEBUG DELIVERY:", deliveryFee);
+console.log("DEBUG TOTAL:", total);
+
   const order = {
-  id: Date.now().toString(),
-  customerId: customer.username,
-  ...result.data,
-  items: JSON.parse(formData.get("items") || "[]"),
-  subtotal: Number(formData.get("subtotal") || 0),
-  deliveryFee: Number(formData.get("deliveryFee") || 0),
-  total: Number(formData.get("total") || 0),
-  status: "Preparing",
-  createdAt: new Date().toISOString(),
-};
+    id: Date.now().toString(),
+    customerId: customer.username,
+    ...result.data,
+    items,
+    subtotal,
+    deliveryFee,
+    total,
+    status: "Preparing",
+    createdAt: new Date().toISOString(),
+  };
+
+  console.log("SERVER CALCULATED ORDER:", order);
+console.log("SERVER TOTALS:", {
+  subtotal,
+  deliveryFee,
+  total,
+});
 
   saveOrder(order);
 
@@ -102,7 +144,6 @@ export async function placeOrder(previousState, formData) {
     order,
   };
 }
-
 export async function cancelOrder(orderId) {
   const customer = await getCurrentCustomer();
 
