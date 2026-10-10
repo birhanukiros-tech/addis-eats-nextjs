@@ -27,14 +27,14 @@ export const metadata = {
 description:
   "Explore traditional Ethiopian dishes, browse the Addis Eats menu, and order your favorite meals for delivery in Addis Ababa.",
 
-    url: "https://addis-eats-nextjs-o13s.vercel.app",
+    url: "https://addis-eats-nextjs-o13s.vercel.app/",
     siteName: "Addis Eats",
     locale: "en_US",
     type: "website",
     images: [
       {
         url: "/og/Addis_eats.jpg",
-        width: 1199,
+        width: 1200,
         height: 630,
         alt: "Addis Eats Ethiopian food",
       },

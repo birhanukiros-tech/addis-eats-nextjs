@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getDish, getDishes } from "@/lib/dishes";
 import { createDishSlug } from "@/lib/dish-slug";
 
+
 export async function generateMetadata({ params }) {
   const { id } = await params;
   const dish = await getDish(id);
@@ -19,34 +20,46 @@ export async function generateMetadata({ params }) {
     };
   }
 
+  const siteUrl = "https://addis-eats-nextjs-o13s.vercel.app";
   const slug = createDishSlug(dish.name);
-  const description =
+
+  const rawDescription =
     `${dish.name} - ${dish.price} ETB. ${dish.description}`;
-  const url = `/menu/${slug}`;
+
+  const description =
+    rawDescription.length > 155
+      ? `${rawDescription.slice(0, 152).trimEnd()}...`
+      : rawDescription;
+
+  const url = new URL(`/menu/${slug}`, siteUrl).toString();
+  const imageUrl = new URL(dish.image, siteUrl).toString();
 
   return {
     title: `${dish.name} | Ethiopian Food`,
     description,
+
     alternates: {
       canonical: url,
     },
+
     openGraph: {
       title: `${dish.name} | Addis Eats`,
       description,
       url,
-      type: "article",
+      type: "website",
       images: [
         {
-          url: dish.image,
-          alt: dish.name,
+          url: imageUrl,
+          alt: `${dish.name} from Addis Eats`,
         },
       ],
     },
+
     twitter: {
       card: "summary_large_image",
       title: `${dish.name} | Addis Eats`,
       description,
-      images: [dish.image],
+      images: [imageUrl],
     },
   };
 }
