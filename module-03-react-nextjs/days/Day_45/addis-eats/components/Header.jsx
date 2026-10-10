@@ -27,7 +27,7 @@ function Header({ customer }) {
 
   return (
     <>
-      <header className="border-b border-[#E5D8C7] bg-[#F2E8D5]">
+      <header className="border-b border-[#E5D8C7] bg-[#F2E8D5] sticky top-0 z-50">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-6">
           
           <Link href="/" className="flex items-center gap-3">

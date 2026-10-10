@@ -4,21 +4,39 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 const CartContext = createContext(null);
 
-function Providers({ children }) {
+function Providers({ children, customer }) {
+  const customerId = customer?.username || customer?.email || null;
+
+  const cartKey = customerId
+    ? `addis-eats-cart-${customerId}`
+    : "addis-eats-cart-guest";
+
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [loadedKey, setLoadedKey] = useState(null);
 
   useEffect(() => {
-    const savedCart = localStorage.getItem("addis-eats-cart");
+    try {
+      const savedCart = localStorage.getItem(cartKey);
+      const parsedCart = savedCart ? JSON.parse(savedCart) : [];
 
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
+      setCart(Array.isArray(parsedCart) ? parsedCart : []);
+    } catch {
+      setCart([]);
     }
-  }, []);
+
+    setLoadedKey(cartKey);
+  }, [cartKey]);
 
   useEffect(() => {
-    localStorage.setItem("addis-eats-cart", JSON.stringify(cart));
-  }, [cart]);
+    // Don't save the previous customer's cart under the new customer's key.
+    if (loadedKey !== cartKey) return;
+
+    localStorage.setItem(cartKey, JSON.stringify(cart));
+  }, [cart, cartKey, loadedKey]);
+
+  // Hide the previous customer's cart while the new cart loads.
+  const visibleCart = loadedKey === cartKey ? cart : [];
 
   function addToCart(dish) {
     setCart((currentCart) => {
@@ -29,24 +47,14 @@ function Providers({ children }) {
       if (existingItem) {
         return currentCart.map((item) =>
           item.id === dish.id
-            ? {
-                ...item,
-                quantity: item.quantity + 1,
-              }
+            ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
 
-      return [
-        ...currentCart,
-        {
-          ...dish,
-          quantity: 1,
-        },
-      ];
+      return [...currentCart, { ...dish, quantity: 1 }];
     });
 
-    // Always open the drawer when an item is added.
     setCartOpen(true);
   }
 
@@ -60,10 +68,7 @@ function Providers({ children }) {
     setCart((currentCart) =>
       currentCart.map((item) =>
         item.id === id
-          ? {
-              ...item,
-              quantity: item.quantity + 1,
-            }
+          ? { ...item, quantity: item.quantity + 1 }
           : item
       )
     );
@@ -74,10 +79,7 @@ function Providers({ children }) {
       currentCart
         .map((item) =>
           item.id === id
-            ? {
-                ...item,
-                quantity: item.quantity - 1,
-              }
+            ? { ...item, quantity: item.quantity - 1 }
             : item
         )
         .filter((item) => item.quantity > 0)
@@ -92,12 +94,12 @@ function Providers({ children }) {
     setCartOpen(false);
   }
 
-  const cartTotal = cart.reduce(
+  const cartTotal = visibleCart.reduce(
     (total, item) => total + item.price * item.quantity,
     0
   );
 
-  const cartCount = cart.reduce(
+  const cartCount = visibleCart.reduce(
     (total, item) => total + item.quantity,
     0
   );
@@ -105,7 +107,7 @@ function Providers({ children }) {
   return (
     <CartContext.Provider
       value={{
-        cart,
+        cart: visibleCart,
         cartTotal,
         cartCount,
         addToCart,

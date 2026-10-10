@@ -21,6 +21,14 @@ function CartPage() {
         <div className="mx-auto max-w-4xl text-center">
           <div className="mb-8 rounded-3xl bg-[#7A263A] px-6 py-12 shadow-lg">
             <p className="mb-3 text-sm font-bold tracking-[0.25em] text-[#D4AF60]">
+              <Image
+                src="/logo.png"
+                alt="Addis Eats logo"
+                width={20}
+                height={20}
+                priority
+                className="mr-1 inline-block align-middle"
+              />
               ADDIS EATS
             </p>
 
@@ -43,8 +51,8 @@ function CartPage() {
             </h2>
 
             <p className="mx-auto mb-7 max-w-md text-[#666666]">
-              You haven't added any delicious Ethiopian dishes yet.
-              Explore our menu and find something you love.
+              You haven't added any delicious Ethiopian dishes yet. Explore our
+              menu and find something you love.
             </p>
 
             <Link
@@ -205,9 +213,7 @@ function CartPage() {
             </div>
 
             <div className="flex justify-between py-5">
-              <span className="text-lg font-bold text-[#2F2F2F]">
-                Total
-              </span>
+              <span className="text-lg font-bold text-[#2F2F2F]">Total</span>
 
               <span className="text-2xl font-bold text-[#7A263A]">
                 {cartTotal} ETB

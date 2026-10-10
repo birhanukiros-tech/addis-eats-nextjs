@@ -36,7 +36,7 @@ async function RootLayout({ children }) {
   return (
     <html lang="en" className={inter.className}>
       <body>
-        <Providers>
+        <Providers customer={customer}>
           <Header customer={customer} />
           {children}
           <Footer />
