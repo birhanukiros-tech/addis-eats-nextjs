@@ -1,3 +1,4 @@
+
 import "./globals.css";
 import Providers from "@/components/Providers";
 import Header from "@/components/Header";
@@ -12,26 +13,39 @@ const inter = Inter({
 
 export const metadata = {
   metadataBase: new URL("https://addis-eats-nextjs-o13s.vercel.app"),
+
   title: {
     default: "Addis Eats | Ethiopian Food Delivery",
     template: "%s | Addis Eats",
   },
+
   description:
     "Discover delicious Ethiopian food with Addis Eats. Explore local dishes, browse our menu, and order your favorites.",
+
   openGraph: {
     title: "Addis Eats | Ethiopian Food Delivery",
-    description:
-      "Discover Ethiopian food favorites with Addis Eats.",
+    description: "Discover Ethiopian food favorites with Addis Eats.",
     url: "https://addis-eats-nextjs-o13s.vercel.app",
     siteName: "Addis Eats",
     locale: "en_US",
     type: "website",
+    images: [
+      {
+        url: "/og/Addis_eats.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Addis Eats Ethiopian food",
+      },
+    ],
   },
+
   twitter: {
     card: "summary_large_image",
     title: "Addis Eats | Ethiopian Food Delivery",
     description: "Discover delicious Ethiopian food with Addis Eats.",
+    images: ["/og/Addis_eats.jpg"],
   },
+
   robots: {
     index: true,
     follow: true,
