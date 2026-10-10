@@ -1,4 +1,3 @@
-
 import "./globals.css";
 import Providers from "@/components/Providers";
 import Header from "@/components/Header";
@@ -45,6 +44,7 @@ export const metadata = {
     description: "Discover delicious Ethiopian food with Addis Eats.",
     images: ["/og/Addis_eats.jpg"],
   },
+
 
   robots: {
     index: true,
