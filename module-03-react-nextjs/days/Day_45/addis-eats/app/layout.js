@@ -11,23 +11,31 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title:{
-    template:"%s . Addis Eats",
-  default:"Addis Eats - food delivery in Addis Ababa"
-},
-
-  descirption:"Food delivery in Ethiopia",
-
-  metadataBase: new URL("http://localhost:3000"),
-
+  metadataBase: new URL("https://addis-eats-nextjs-o13s.vercel.app"),
+  title: {
+    default: "Addis Eats | Ethiopian Food Delivery",
+    template: "%s | Addis Eats",
+  },
+  description:
+    "Discover delicious Ethiopian food with Addis Eats. Explore local dishes, browse our menu, and order your favorites.",
   openGraph: {
-    title:"Addis Eats - food delivery in Addis Ababa",
-    descripition: "Order delicious Ethiopian food delivered across Addis Ababa.",
-   images: ["/og/Addis_eats.jpg"],
+    title: "Addis Eats | Ethiopian Food Delivery",
+    description:
+      "Discover Ethiopian food favorites with Addis Eats.",
+    url: "https://addis-eats-nextjs-o13s.vercel.app",
+    siteName: "Addis Eats",
+    locale: "en_US",
     type: "website",
-    locale:"en_ET",
-
-  }
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Addis Eats | Ethiopian Food Delivery",
+    description: "Discover delicious Ethiopian food with Addis Eats.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 async function RootLayout({ children }) {

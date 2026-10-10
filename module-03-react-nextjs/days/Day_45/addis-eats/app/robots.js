@@ -1,16 +1,17 @@
+
 export default function robots() {
-    return {
-        rules: {
-            userAgent:"*",
-            disallow: [
-                "/cart",
-                "/orders",
-                "/checkout",
-                "/login",
-            ]
-
-        },
-
-        sitemap: "http://localhost:3000/sitemap.xml",
-    };
+  return {
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      disallow: [
+        "/cart",
+        "/orders",
+        "/checkout",
+        "/login",
+        "/kitchen",
+      ],
+    },
+    sitemap: "https://addis-eats-nextjs-o13s.vercel.app/sitemap.xml",
+  };
 }

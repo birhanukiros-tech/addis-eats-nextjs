@@ -12,16 +12,41 @@ export async function generateMetadata({ params }) {
   if (!dish) {
     return {
       title: "Dish not found",
+      robots: {
+        index: false,
+        follow: false,
+      },
     };
   }
 
   const slug = createDishSlug(dish.name);
+  const description =
+    `${dish.name} - ${dish.price} ETB. ${dish.description}`;
+  const url = `/menu/${slug}`;
 
   return {
-    title: dish.name,
-    description: `${dish.name} - ${dish.price} ETB. ${dish.description}`,
+    title: `${dish.name} | Ethiopian Food`,
+    description,
     alternates: {
-      canonical: `/menu/${slug}`,
+      canonical: url,
+    },
+    openGraph: {
+      title: `${dish.name} | Addis Eats`,
+      description,
+      url,
+      type: "article",
+      images: [
+        {
+          url: dish.image,
+          alt: dish.name,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${dish.name} | Addis Eats`,
+      description,
+      images: [dish.image],
     },
   };
 }
@@ -46,6 +71,8 @@ async function DishPage({ params }) {
     "@context": "https://schema.org",
     "@type": "MenuItem",
     name: dish.name,
+    description: dish.description,
+    image: dish.image,
     offers: {
       "@type": "Offer",
       price: dish.price,

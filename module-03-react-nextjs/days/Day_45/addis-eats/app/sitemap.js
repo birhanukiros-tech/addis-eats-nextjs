@@ -1,20 +1,25 @@
+
 import { getDishes } from "@/lib/dishes";
 
 export default async function sitemap() {
-    
-const dishes = await getDishes();
+  const baseUrl = "https://addis-eats-nextjs-o13s.vercel.app";
+  const dishes = await getDishes();
 
-return [
+  return [
     {
-        url:"http://localhost:3000/",
+      url: baseUrl,
+      changeFrequency: "weekly",
+      priority: 1,
     },
     {
-        url: "http://localhost:3000/menu",
+      url: `${baseUrl}/menu`,
+      changeFrequency: "weekly",
+      priority: 0.9,
     },
-    
-    ...dishes.map((dish) =>({
-            url: `http://localhost:3000/menu/${dish.id}`,
-    }))
-    
-];
-};
+    ...dishes.map((dish) => ({
+      url: `${baseUrl}/menu/${dish.id}`,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    })),
+  ];
+}
