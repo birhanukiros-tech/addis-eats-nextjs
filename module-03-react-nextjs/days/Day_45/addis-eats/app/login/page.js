@@ -18,28 +18,25 @@ function LoginPage() {
   const [googlePending, setGooglePending] = useState(false);
 
   function getSafeNext() {
-    return (
-      next &&
-      next.startsWith("/") &&
-      !next.startsWith("//") &&
-      next !== "/kitchen" &&
-      !next.startsWith("/kitchen/")
-    )
-      ? next
-      : "/orders";
-  }
+  return (
+    next &&
+    next.startsWith("/") &&
+    !next.startsWith("//") &&
+    next !== "/kitchen" &&
+    !next.startsWith("/kitchen/")
+  )
+    ? next
+    : "/";
+}
 
   useEffect(() => {
-    if (!state?.success) return;
+  if (!state?.success) return;
 
-    if (state.role === "staff") {
-      router.replace("/kitchen");
-      return;
-    }
+  const destination =
+    state.role === "staff" ? "/kitchen" : getSafeNext();
 
-    router.replace(getSafeNext());
-    router.refresh();
-  }, [state, router]);
+  router.replace(destination);
+}, [state, router]);
 
   function handleGoogleScriptLoad() {
     if (!window.google?.accounts?.id) {
