@@ -23,7 +23,10 @@ export const metadata = {
 
   openGraph: {
     title: "Addis Eats | Ethiopian Food Delivery",
-    description: "Discover delicious Ethiopian food with Addis Eats. Explore traditional local dishes, browse our menu, and order your favorite meals for delivery in Addis Ababa.",
+    
+description:
+  "Explore traditional Ethiopian dishes, browse the Addis Eats menu, and order your favorite meals for delivery in Addis Ababa.",
+
     url: "https://addis-eats-nextjs-o13s.vercel.app",
     siteName: "Addis Eats",
     locale: "en_US",
@@ -31,7 +34,7 @@ export const metadata = {
     images: [
       {
         url: "/og/Addis_eats.jpg",
-        width: 1200,
+        width: 1199,
         height: 630,
         alt: "Addis Eats Ethiopian food",
       },
