@@ -1,62 +1,59 @@
-# Addis Eats Authentication & Authorization
+# Addis Eats — Authentication & Authorization
 
 ## Overview
 
-Addis Eats uses server-side session authentication to protect customer and staff-only areas.
+Addis Eats uses server-side authentication and authorization to protect customer and staff features.
 
-The authentication system provides:
+The authentication system supports:
 
-* Customer sign-in and sign-out
-* Secure HTTP-only session cookies
-* Protected customer routes
-* Session-based authorization
-* Order ownership checks
-* Staff role authorization
-* Protected API and server actions
+- Customer registration, sign-in, and sign-out.
+- Google sign-in integration.
+- Signed session cookies.
+- Protected customer pages and server actions.
+- Customer-specific order queries.
+- Order ownership checks before cancellation.
+- Staff-only access to the kitchen area.
 
 ## Session Security
 
-The application stores the authenticated session in a cookie configured with:
+The application uses a signed session token stored in an HTTP-only cookie. Session helpers validate the token and identify the current customer.
 
-* `httpOnly`
-* `secure`
-* `sameSite`
-* An appropriate expiration time
+Cookie settings should be reviewed in the authentication implementation to confirm the actual `httpOnly`, `secure`, `sameSite`, and expiration values. Production deployment must use HTTPS and an appropriately configured session secret.
 
-The `getSession()` helper is used by protected pages and server-side code to determine the currently authenticated user.
+Required secrets and authentication configuration belong in `.env.local` for local development or the deployment platform's environment-variable settings. Never commit secrets to Git.
 
 ## Protected Routes
 
-Middleware protects the following private customer routes:
+The following customer routes require authentication:
 
-* `/checkout`
-* `/orders`
+- `/checkout`
+- `/orders`
 
-Unauthenticated users are redirected to the sign-in page.
+Unauthenticated users are redirected to the login page. The `next` parameter allows users to return to an intended internal destination after signing in.
 
-The intended destination is passed using the `next` parameter so that the user can return to the page they originally requested after signing in.
+Unsafe external destinations, protocol-relative URLs, and staff-only destinations are rejected by the login redirect logic.
 
-Unsafe `next` values are rejected unless they start with `/`.
+The `/kitchen` route is reserved for staff and checks the authenticated user's role server-side.
 
 ## Order Ownership
 
-Orders are scoped to the authenticated customer.
+The authenticated session determines which customer owns an order.
 
-The orders page uses the current session username when retrieving orders:
+The orders page retrieves the current customer's orders:
 
 ```js
 const orders = getOrdersFor(session.username);
 ```
 
-The order query filters orders using the customer's ID:
+The order query filters orders by customer ownership:
 
 ```js
 order.customerId === customerId
 ```
 
-This prevents one customer from reading another customer's orders.
+When creating an order, the server sets `customerId` from the authenticated customer rather than trusting an ownership value submitted by the browser.
 
-Order writes also verify ownership before modifying an existing order. For example, cancelling an order checks:
+Before cancelling an order, the server verifies that the authenticated customer owns it:
 
 ```js
 if (order.customerId !== customer.username) {
@@ -67,49 +64,45 @@ if (order.customerId !== customer.username) {
 }
 ```
 
-New orders receive their `customerId` from the authenticated session rather than trusting a customer ID supplied by the client.
+Only after this check does the server update the order status.
 
-## API Security
+## API and Server Action Protection
 
-The `/api/orders` handler checks the current authenticated customer before accepting an order.
+The orders API and order-related server actions check authentication and validate the relevant request data.
 
-Unauthenticated requests receive:
+Unauthenticated requests to protected API operations should receive an appropriate unauthorized response. Valid requests must still pass server-side validation and ownership checks.
 
-```text
-401 Unauthorized
-```
-
-Authenticated requests with valid order data are accepted with:
-
-```text
-201 Created
-```
-
-The API also assigns the order ownership using the authenticated customer's username.
+Client-side UI restrictions are not considered a substitute for server-side authorization.
 
 ## Staff Authorization
 
-A staff role is supported for administrative access.
+Staff access is controlled by the authenticated user's role. The `/kitchen` route performs a server-side role check rather than relying only on whether staff controls are visible in the UI.
 
-The `/kitchen` route is protected server-side by checking the authenticated user's role before rendering the staff page.
+Customer accounts must not be able to access staff-only features.
 
-Authorization is therefore not based only on hiding elements in the UI.
+## Verification Performed
 
-## Security Testing
+The following checks were performed locally:
 
-The following authentication and authorization scenarios were tested:
+1. Signed-out access to protected customer routes redirects to login.
+2. Signed-in customers can access checkout.
+3. Customer order history is scoped to the authenticated customer.
+4. The orders API returned an empty data list for a customer with no orders.
+5. Live order polling did not reveal another customer's order.
+6. Unsafe external login redirects fell back to the home page.
+7. The cancellation action checks order ownership before updating an order.
+8. Customer access to the staff-only kitchen route was checked.
 
-1. Signed-out user attempting to place an order → rejected with HTTP `401`.
-2. Signed-in customer submitting a valid order → accepted with HTTP `201`.
-3. Orders page retrieves only orders belonging to the authenticated customer.
-4. Order cancellation verifies ownership before updating the order.
-5. Staff-only `/kitchen` access is checked server-side.
-6. Unsafe redirect destinations are rejected.
+The cancellation ownership guard was reviewed in code. A direct attempt to cancel another customer's hidden order was not confirmed as an executed test.
+
+## Demo Storage Limitations
+
+Some demo accounts and orders are stored in server memory. This means that data may be lost when the server restarts, and the current in-memory implementation is not suitable for reliable multi-instance production storage.
+
+Before production use, persistent database storage, robust session lifecycle management, rate limiting, and appropriate security monitoring should be reviewed.
 
 ## Summary
 
-Authentication identifies the current user through the server-side session.
+Authentication establishes the current user through a server-validated session. Authorization checks whether that user may access a route or modify a resource.
 
-Authorization determines whether that authenticated user is allowed to access a route or modify a resource.
-
-Addis Eats applies both concepts to customer routes, orders, server actions, API handlers, and the staff-only kitchen route.
+Addis Eats applies these checks to customer pages, order operations, API handlers, and staff-only access.
