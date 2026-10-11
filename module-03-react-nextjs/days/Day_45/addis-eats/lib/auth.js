@@ -13,13 +13,25 @@ globalForAuth.addisEatsDemoUsers ??= new Map();
 const users = globalForAuth.addisEatsDemoUsers;
 const googleClient = new OAuth2Client();
 
-// Seed existing environment-configured accounts.
+// Seed environment-configured customer and staff accounts.
 function seedUser(username, passwordHash, role) {
-  if (username && passwordHash && !users.has(username.toLowerCase())) {
-    users.set(username.toLowerCase(), {
-      username,
-      passwordHash,
+  if (
+    typeof username !== "string" ||
+    !username.trim() ||
+    typeof passwordHash !== "string" ||
+    !passwordHash.trim()
+  ) {
+    return;
+  }
+
+  const normalizedUsername = username.trim().toLowerCase();
+
+  if (!users.has(normalizedUsername)) {
+    users.set(normalizedUsername, {
+      username: normalizedUsername,
+      passwordHash: passwordHash.trim(),
       role,
+      provider: "env",
     });
   }
 }
@@ -68,10 +80,15 @@ function createSessionToken(user) {
 }
 
 export function verifySessionToken(token) {
-  if (!token || typeof token !== "string") return null;
+  if (!token || typeof token !== "string") {
+    return null;
+  }
 
   const parts = token.split(".");
-  if (parts.length !== 2) return null;
+
+  if (parts.length !== 2) {
+    return null;
+  }
 
   const [payload, signature] = parts;
 
@@ -100,10 +117,15 @@ export function verifySessionToken(token) {
       return null;
     }
 
-    // Prefer the current server-side user record when available.
-    const user = users.get(session.username.toLowerCase());
+    const normalizedUsername = session.username.toLowerCase();
+    const user = users.get(normalizedUsername);
 
+    // Use the current account record when available.
     if (user) {
+      if (user.role !== session.role) {
+        return null;
+      }
+
       return {
         username: user.username,
         role: user.role,
@@ -112,13 +134,13 @@ export function verifySessionToken(token) {
       };
     }
 
-    // A verified Google customer can still be recognized when a
-    // different Vercel instance has no matching in-memory Map entry.
+    // Recognize signed customer sessions across server instances.
+    // Only customers with email-based usernames can use this fallback.
     if (
-      session.provider === "google" &&
       session.role === "customer" &&
+      ["google", "password"].includes(session.provider) &&
       typeof session.email === "string" &&
-      session.email.toLowerCase() === session.username.toLowerCase()
+      session.email.toLowerCase() === normalizedUsername
     ) {
       return {
         username: session.username,
@@ -201,6 +223,18 @@ export async function registerCustomer(name, email, password) {
 }
 
 export async function loginCustomer(username, password) {
+  if (
+    typeof username !== "string" ||
+    typeof password !== "string" ||
+    !username.trim() ||
+    !password
+  ) {
+    return {
+      success: false,
+      error: "Invalid username/email or password.",
+    };
+  }
+
   const key = username.trim().toLowerCase();
   const user = users.get(key);
 
@@ -226,7 +260,7 @@ export async function loginCustomer(username, password) {
 export async function googleSignIn(idToken) {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-  if (!clientId || !idToken) {
+  if (!clientId || typeof idToken !== "string" || !idToken) {
     return {
       success: false,
       error: "Google sign-in is not configured.",

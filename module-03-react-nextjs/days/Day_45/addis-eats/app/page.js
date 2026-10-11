@@ -49,7 +49,7 @@ function HomePage() {
               >
                 የኢትዮጵያን ጣዕም
                 <span className="mt-3 block text-[#f0d58a]">
-                  እስከ ቤትዎ እናመጣለን
+                  እስከ ቤትዎ ድረስ እናመጣለን
                 </span>
               </h1>
 
