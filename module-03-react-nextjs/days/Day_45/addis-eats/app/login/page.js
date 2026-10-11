@@ -189,7 +189,7 @@ function LoginPage() {
             <Script
               src="https://accounts.google.com/gsi/client"
               strategy="afterInteractive"
-              onLoad={handleGoogleScriptLoad}
+              onReady={handleGoogleScriptLoad}
               onError={() =>
                 setGoogleError("Could not load Google's sign-in service.")
               }
