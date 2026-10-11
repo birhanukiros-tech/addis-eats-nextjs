@@ -1,5 +1,6 @@
 
 import { getDishes } from "@/lib/dishes";
+import { createDishSlug } from "@/lib/dish-slug";
 
 export default async function sitemap() {
   const baseUrl = "https://addis-eats-nextjs-o13s.vercel.app";
@@ -17,7 +18,7 @@ export default async function sitemap() {
       priority: 0.9,
     },
     ...dishes.map((dish) => ({
-      url: `${baseUrl}/menu/${dish.id}`,
+      url: `${baseUrl}/menu/${createDishSlug(dish.name)}`,
       changeFrequency: "weekly",
       priority: 0.7,
     })),
