@@ -1,4 +1,3 @@
-
 import { getDishes } from "@/lib/dishes";
 import { createDishSlug } from "@/lib/dish-slug";
 

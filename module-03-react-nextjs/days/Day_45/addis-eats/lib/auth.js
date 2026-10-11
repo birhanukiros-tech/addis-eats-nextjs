@@ -1,4 +1,3 @@
-
 import { cookies } from "next/headers";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import bcrypt from "bcryptjs";
@@ -12,10 +11,9 @@ const globalForAuth = globalThis;
 globalForAuth.addisEatsDemoUsers ??= new Map();
 
 const users = globalForAuth.addisEatsDemoUsers;
-
 const googleClient = new OAuth2Client();
 
-// Keep existing environment-configured customer and staff accounts.
+// Seed existing environment-configured accounts.
 function seedUser(username, passwordHash, role) {
   if (username && passwordHash && !users.has(username.toLowerCase())) {
     users.set(username.toLowerCase(), {
@@ -29,13 +27,13 @@ function seedUser(username, passwordHash, role) {
 seedUser(
   process.env.ADDIS_EATS_CUSTOMER_USERNAME,
   process.env.ADDIS_EATS_CUSTOMER_PASSWORD_HASH,
-  "customer"
+  "customer",
 );
 
 seedUser(
   process.env.ADDIS_EATS_STAFF_USERNAME,
   process.env.ADDIS_EATS_STAFF_PASSWORD_HASH,
-  "staff"
+  "staff",
 );
 
 function getSessionSecret() {
@@ -54,12 +52,16 @@ function sign(payload) {
     .digest("base64url");
 }
 
-function createSessionToken(username) {
+function createSessionToken(user) {
   const payload = Buffer.from(
     JSON.stringify({
-      username,
+      username: user.username,
+      role: user.role,
+      email: user.email ?? null,
+      name: user.name ?? null,
+      provider: user.provider ?? null,
       expiresAt: Date.now() + SESSION_DURATION * 1000,
-    })
+    }),
   ).toString("base64url");
 
   return `${payload}.${sign(payload)}`;
@@ -85,25 +87,48 @@ export function verifySessionToken(token) {
     }
 
     const session = JSON.parse(
-      Buffer.from(payload, "base64url").toString("utf8")
+      Buffer.from(payload, "base64url").toString("utf8"),
     );
 
-    const user = users.get(session.username?.toLowerCase());
-
     if (
-      !user ||
+      typeof session.username !== "string" ||
+      !session.username ||
+      !["customer", "staff"].includes(session.role) ||
       !Number.isFinite(session.expiresAt) ||
       session.expiresAt <= Date.now()
     ) {
       return null;
     }
 
-    return {
-      username: user.username,
-      role: user.role,
-      email: user.email,
-      name: user.name,
-    };
+    // Prefer the current server-side user record when available.
+    const user = users.get(session.username.toLowerCase());
+
+    if (user) {
+      return {
+        username: user.username,
+        role: user.role,
+        email: user.email ?? session.email ?? null,
+        name: user.name ?? session.name ?? null,
+      };
+    }
+
+    // A verified Google customer can still be recognized when a
+    // different Vercel instance has no matching in-memory Map entry.
+    if (
+      session.provider === "google" &&
+      session.role === "customer" &&
+      typeof session.email === "string" &&
+      session.email.toLowerCase() === session.username.toLowerCase()
+    ) {
+      return {
+        username: session.username,
+        role: "customer",
+        email: session.email,
+        name: session.name || session.email,
+      };
+    }
+
+    return null;
   } catch {
     return null;
   }
@@ -119,17 +144,13 @@ export async function getCurrentCustomer() {
 async function createLoginSession(user) {
   const cookieStore = await cookies();
 
-  cookieStore.set(
-    COOKIE_NAME,
-    createSessionToken(user.username),
-    {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: SESSION_DURATION,
-    }
-  );
+  cookieStore.set(COOKIE_NAME, createSessionToken(user), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: SESSION_DURATION,
+  });
 
   return {
     success: true,
@@ -139,9 +160,10 @@ async function createLoginSession(user) {
 }
 
 export async function registerCustomer(name, email, password) {
+  const normalizedName = name.trim();
   const normalizedEmail = email.trim().toLowerCase();
 
-  if (!name.trim() || !normalizedEmail || !password) {
+  if (!normalizedName || !normalizedEmail || !password) {
     return {
       success: false,
       error: "Please complete all fields.",
@@ -167,9 +189,10 @@ export async function registerCustomer(name, email, password) {
   const user = {
     username: normalizedEmail,
     email: normalizedEmail,
-    name: name.trim(),
+    name: normalizedName,
     passwordHash,
     role: "customer",
+    provider: "password",
   };
 
   users.set(normalizedEmail, user);
@@ -188,10 +211,7 @@ export async function loginCustomer(username, password) {
     };
   }
 
-  const passwordMatches = await bcrypt.compare(
-    password,
-    user.passwordHash
-  );
+  const passwordMatches = await bcrypt.compare(password, user.passwordHash);
 
   if (!passwordMatches) {
     return {
@@ -202,7 +222,6 @@ export async function loginCustomer(username, password) {
 
   return createLoginSession(user);
 }
-
 
 export async function googleSignIn(idToken) {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -253,17 +272,19 @@ export async function googleSignIn(idToken) {
     } else {
       user.email = email;
       user.name = user.name || payload.name || email;
+      user.provider = "google";
     }
 
     return createLoginSession(user);
-  } catch {
+  } catch (error) {
+    console.error("Google sign-in failed:", error);
+
     return {
       success: false,
       error: "Google sign-in failed. Please try again.",
     };
   }
 }
-
 
 export async function logoutCustomer() {
   const cookieStore = await cookies();
