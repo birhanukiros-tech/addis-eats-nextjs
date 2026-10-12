@@ -22,7 +22,7 @@ function DishList({ dishes }) {
               alt={dish.name}
               width={500}
               height={350}
-              sizes="(max-width: 768px) 100vw, 500px"
+              sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 365px"
               className="h-60 w-full object-cover transition duration-500 group-hover:scale-105"
             />
 

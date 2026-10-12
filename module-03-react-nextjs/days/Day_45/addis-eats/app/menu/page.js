@@ -43,6 +43,7 @@ export default async function MenuPage({ searchParams }) {
             alt="Addis Eats Logo"
             width={70}
             height={70}
+            sizes="70px"
             className="h-[70px] w-[70px] object-contain"
           />
         </div>
