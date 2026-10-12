@@ -39,9 +39,15 @@ Performance score: 98
 ![Lighthouse after optimization](./evidence/day45-lighthouse-after.png)
 
 
+
 ## Additional Measurements
 
 - Largest listed image: 99.6 KiB (`hero-dish.jpg`), below the 150 KiB target.
 - Next.js 16.3.5 bundle analyzer, `/menu` client bundle: 120.78 KB compressed (estimated), 291.22 KB uncompressed, 102 modules.
+- First Load JavaScript: The traditional metric was not directly reported by the build output. The bundle analyzer estimate above is not equivalent, so the under-120-kB target remains unverified.
 
-Note: The bundle analyzer's compressed client-bundle estimate is not the same as the traditional First Load JS metric. The under-120-kB First Load JS target has not been directly verified using this measurement.
+## Evidence
+
+The recorded before-and-after Lighthouse metrics appear in the table above. The screenshot of the latest deployed Lighthouse report is saved at:
+
+![Lighthouse after optimization](./evidence/day45-lighthouse-after.png)
