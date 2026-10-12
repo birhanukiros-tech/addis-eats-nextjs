@@ -2,80 +2,85 @@
 
 ## Overview
 
-Addis Eats uses server-side data access for menu items, customer orders, and staff order management.
+Addis Eats uses Next.js server components, server actions, API routes, SWR, and browser storage to manage menu and order information.
 
 The application includes:
 
-- Menu data retrieval and dish details.
-- Customer-specific order history.
-- Order creation and cancellation.
+- Menu and dish-detail retrieval.
+- Customer authentication and protected pages.
+- Order creation through a server action.
+- Customer order history displayed from browser `localStorage`.
+- Debounced menu search and URL-based pagination.
 - API routes for dishes and orders.
-- Live order updates through polling.
 
 ## Menu Data
 
-The menu interface displays dishes with details such as name, description, price, category, and image.
+The menu displays dish names, descriptions, prices, categories, and images.
 
-Menu data is retrieved through the application's data-access and API layers. Dish details are available through the menu detail route.
+The menu page supplies initial dish data. The `FilterShall` component uses SWR to retrieve paginated dish results and search results from the API.
 
-Relevant routes include:
+Relevant routes:
 
 - `/menu`
 - `/menu/[id]`
 - `/api/dishes`
 - `/api/dishes/[id]`
 
-## Order Data and Ownership
+Menu search is debounced by 300 milliseconds to reduce unnecessary requests while typing.
 
-Order data includes an order identifier, customer ownership, order details, and status.
+Menu pagination is reflected in the URL using the `page` query parameter.
 
-The server associates each new order with the authenticated customer. It must not trust a customer ID supplied by the client.
+## Order Creation and Display
 
-Customer order queries are filtered by the current authenticated user's identity. This prevents the orders page and orders API from exposing another customer's private orders.
+Checkout uses the `placeOrder` server action to submit an order. After a successful response, the checkout client saves the returned order in browser `localStorage` under the key `addis-eats-orders`.
+
+The Orders page checks the authenticated session before displaying the customer's order history.
+
+The `LiveOrders` component reads orders from browser storage and filters the displayed list by the signed-in customer's username.
+
+This implementation is intended for a frontend-focused demonstration. Browser storage is controlled by the user and is not a secure source of order ownership.
 
 ## Order API
 
-The application provides API routes for accessing and managing orders:
+The application includes:
 
 - `/api/orders`
 - `/api/orders/[id]`
 
-Protected operations require authentication and validate the submitted data. Order modifications must also verify that the current customer owns the order, unless the operation is explicitly authorized for staff.
+These routes remain part of the project. However, the current Orders interface reads from `localStorage` rather than polling `/api/orders`.
 
-The application uses appropriate HTTP response codes for authentication failures, invalid input, and successful operations.
-
-## Live Updates
-
-The customer orders interface uses SWR to poll `/api/orders` at five-second intervals.
-
-The API returns only orders belonging to the authenticated customer. Polling updates the displayed order information without exposing other customers' orders.
-
-The menu search also supports finding dishes by the entered search text.
+The current cancellation button updates the order status in browser storage. It does not call the server-side cancellation action.
 
 ## Storage Limitations
 
-Some demo account and order data is stored in server memory rather than a persistent database.
+The current order-history interface uses browser `localStorage`.
 
 Consequences include:
 
-- Data may disappear when the server restarts.
-- In-memory data may not be shared across multiple server instances.
-- The current demo storage should not be treated as production-grade persistence.
+- Orders persist in the same browser on the same device.
+- Orders do not automatically synchronize across browsers or devices.
+- Browser storage can be inspected or modified by the user.
+- The displayed cancellation status is a local change, not a server-confirmed update.
 
-A production deployment should use a persistent database and enforce authentication and ownership checks for every private data operation.
+The server-side order store also uses in-memory storage, which is not reliable shared persistence across Vercel instances or server restarts.
+
+A production implementation requiring shared order history must use persistent server-side storage, authenticated ownership checks, and server-confirmed order updates.
 
 ## Verification
 
-Local checks confirmed that:
+The following frontend behaviors were tested locally:
 
-1. The menu and dish detail routes are available.
-2. Customer order history is scoped to the signed-in customer.
-3. A customer without orders received an empty order list.
-4. Live polling did not expose another customer's order.
-5. Order cancellation includes a server-side ownership check.
+1. The menu and dish-detail routes load.
+2. Menu search and pagination work.
+3. Checkout successfully returns an order.
+4. The order appears in the Orders page for the corresponding customer in the same browser.
+5. Cancelling an order changes its locally displayed status.
+6. The customer and staff authentication flows remain separate from the frontend order display.
+
+These tests demonstrate the current frontend behavior. They do not establish that server-side order ownership, live order polling, or cross-device persistence is fully implemented.
 
 ## Related Documentation
 
 - `README.md` — project overview and setup.
 - `AUTH.md` — authentication and authorization.
-- `PERF.md` — performance measurements and optimization notes.
+- `PERF.md` — performance measurements and optimization evidence.
