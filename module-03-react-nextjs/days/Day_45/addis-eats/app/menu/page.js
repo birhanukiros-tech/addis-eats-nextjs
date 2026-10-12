@@ -9,7 +9,7 @@ export const revalidate = 3600;
 export const metadata = {
   title:"Menu",
   description:"Doro Wet, Tibs, Kitfo and Shiro delivered Across Addis Ababa",
-  alternates: {canoncial: "/menu"},
+  alternates: {canonical: "/menu"},
 };
 
 export default async function MenuPage({ searchParams }) {
