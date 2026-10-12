@@ -1,46 +1,47 @@
-# Addis Eats — Performance Verification
+
+# Addis Eats — Day 45 Performance Report
 
 ## Lighthouse Results
 
-**Environment:** Local development (`http://localhost:3000/`)  
-**Device profile:** Mobile  
-**Tool:** Chrome Lighthouse
+Tested the deployed menu page using Microsoft Edge, Mobile mode.
 
-| Metric | Measured result | Target | Status |
-|---|---:|---:|---|
-| Performance score | 91/100 | ≥ 90 | Pass |
-| Largest Contentful Paint (LCP) | 2.4 s | < 2.5 s | Pass |
-| Cumulative Layout Shift (CLS) | 0 | < 0.1 | Pass |
-| Interaction to Next Paint (INP) | Not verified | < 200 ms | Pending |
+| Metric | Before | After |
+|---|---:|---:|
+| Performance score | 91 | 98 |
+| First Contentful Paint | 1.3 s | 1.2 s |
+| Largest Contentful Paint | 2.8 s | 2.4 s |
+| Total Blocking Time | 260 ms | 70 ms |
+| Cumulative Layout Shift | 0 | 0 |
+| Speed Index | 1.7 s | 1.5 s |
 
-## Interpretation
+## Optimization made
 
-- **Performance:** The local Lighthouse score meets the target.
-- **LCP:** The measured result meets the target but is close to the limit.
-- **CLS:** No layout shift was recorded in the measured run.
-- **INP:** A qualifying user interaction has not yet been measured, so no result is claimed.
+Updated responsive image sizing in `components/DishList.jsx` and added a size hint for the logo in `app/menu/page.js`.
 
-These results represent one local Lighthouse run. They may vary between runs and do not establish deployed-site performance.
+The deployed Lighthouse score increased from 91 to 98 in the recorded tests. LCP decreased from 2.8 seconds to 2.4 seconds.
 
-## Additional Targets
+## Remaining measurements
 
-The following targets still require separate verification:
+- First Load JavaScript for `/menu`: Not measured yet.
+- Largest image file size: Not measured yet.
 
-- First Load JavaScript for `/menu`: less than 120 kB.
-- Largest image: less than 150 kB.
-- Deployed-site Lighthouse performance.
-- Real-device behavior on a mobile phone.
+## Evidence
 
-## Next Verification
+Keep screenshots of the before-and-after Lighthouse reports as evidence.
 
-After deployment:
 
-1. Run Lighthouse against the deployed URL using the mobile profile.
-2. Record the new Performance, LCP, and CLS results.
-3. Test a qualifying interaction to measure INP.
-4. Inspect the `/menu` JavaScript bundle and largest image size.
-5. Test the application on a real mobile device.
+## Lighthouse Evidence
 
-## Conclusion
+### After optimization — Deployed website
 
-The local Lighthouse run achieved a score of **91/100**, an LCP of **2.4 seconds**, and a CLS of **0**. Further testing is needed to verify INP, bundle and image-size targets, and performance on the deployed application.
+Performance score: 98
+
+![Lighthouse after optimization](./evidence/day45-lighthouse-after.png)
+
+
+## Additional Measurements
+
+- Largest listed image: 99.6 KiB (`hero-dish.jpg`), below the 150 KiB target.
+- Next.js 16.3.5 bundle analyzer, `/menu` client bundle: 120.78 KB compressed (estimated), 291.22 KB uncompressed, 102 modules.
+
+Note: The bundle analyzer's compressed client-bundle estimate is not the same as the traditional First Load JS metric. The under-120-kB First Load JS target has not been directly verified using this measurement.

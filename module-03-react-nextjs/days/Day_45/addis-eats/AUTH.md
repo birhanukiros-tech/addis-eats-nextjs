@@ -35,44 +35,21 @@ Unsafe external destinations, protocol-relative URLs, and staff-only destination
 
 The `/kitchen` route is reserved for staff and checks the authenticated user's role server-side.
 
-## Order Ownership
 
-The authenticated session determines which customer owns an order.
+## Order Storage and Ownership
 
-The orders page retrieves the current customer's orders:
+The `placeOrder` server action requires a signed-in customer, validates the submitted customer details, retrieves dish information, and calculates the order totals on the server.
 
-```js
-const orders = getOrdersFor(session.username);
-```
+The server assigns the order's customer ID from the authenticated session rather than trusting a customer ID submitted by the browser.
 
-The order query filters orders by customer ownership:
+After a successful order, the checkout client stores the returned order in browser `localStorage` under the key `addis-eats-orders`.
 
-```js
-order.customerId === customerId
-```
+The Orders page requires authentication. Its `LiveOrders` component reads the locally stored orders and filters the displayed list using the signed-in customer's username.
 
-When creating an order, the server sets `customerId` from the authenticated customer rather than trusting an ownership value submitted by the browser.
+The current Orders interface also updates cancellation status in `localStorage` on the client. Although the `cancelOrder` server action contains an ownership check, the current client-side cancellation button does not call that server action.
 
-Before cancelling an order, the server verifies that the authenticated customer owns it:
+**Important limitation:** Filtering orders by username in browser storage is a frontend display feature, not a security boundary. Browser storage can be inspected or modified by the user. This implementation is for a frontend-focused demo and does not provide secure, shared order history across devices.
 
-```js
-if (order.customerId !== customer.username) {
-  return {
-    success: false,
-    error: "You are not allowed to cancel this order.",
-  };
-}
-```
-
-Only after this check does the server update the order status.
-
-## API and Server Action Protection
-
-The orders API and order-related server actions check authentication and validate the relevant request data.
-
-Unauthenticated requests to protected API operations should receive an appropriate unauthorized response. Valid requests must still pass server-side validation and ownership checks.
-
-Client-side UI restrictions are not considered a substitute for server-side authorization.
 
 ## Staff Authorization
 

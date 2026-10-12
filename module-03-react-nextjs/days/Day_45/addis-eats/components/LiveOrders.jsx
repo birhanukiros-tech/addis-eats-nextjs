@@ -1,124 +1,26 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import useSWR from "swr";
+import CancelOrderButton from "@/components/CancelOrderButton";
+import fetcher from "@/lib/fetcher";
 
-const STORAGE_KEY = "addis-eats-orders";
-
-function LiveOrders({ username, initialOrders = [] }) {
-  const [orders, setOrders] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    function loadOrders() {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        const localOrders = saved ? JSON.parse(saved) : [];
-
-        const combined = [
-          ...(Array.isArray(initialOrders) ? initialOrders : []),
-          ...(Array.isArray(localOrders) ? localOrders : []),
-        ];
-
-        const matchingOrders = combined.filter(
-          (order) =>
-            order &&
-            String(order.customerId).toLowerCase() ===
-              String(username).toLowerCase()
-        );
-
-        // Avoid showing the same order twice.
-        const uniqueOrders = [
-          ...new Map(
-            matchingOrders.map((order) => [
-              String(order.id),
-              order,
-            ])
-          ).values(),
-        ];
-
-        uniqueOrders.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() -
-            new Date(a.createdAt).getTime()
-        );
-
-        setOrders(uniqueOrders);
-      } catch (error) {
-        console.error("Could not load local orders:", error);
-        setOrders([]);
-      }
-
-      setLoaded(true);
+function LiveOrders({ initialOrders }) {
+  const { data, error, isValidating } = useSWR(
+    "/api/orders",
+    fetcher,
+    {
+      fallbackData: { data: initialOrders },
+      refreshInterval: 5000,
+      revalidateOnFocus: true,
     }
+  );
 
-    loadOrders();
+  const orders = data?.data ?? initialOrders;
 
-    function handleStorageChange(event) {
-      if (event.key === STORAGE_KEY || event.key === null) {
-        loadOrders();
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [username, initialOrders]);
-
-  function handleCancel(orderId) {
-    const updatedOrders = orders.map((order) =>
-      String(order.id) === String(orderId)
-        ? { ...order, status: "Cancelled" }
-        : order
-    );
-
-    setOrders(updatedOrders);
-
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      const allOrders = saved ? JSON.parse(saved) : [];
-
-      const safeOrders = Array.isArray(allOrders) ? allOrders : [];
-      const exists = safeOrders.some(
-        (order) => String(order.id) === String(orderId)
-      );
-
-      const updatedSavedOrders = exists
-        ? safeOrders.map((order) =>
-            String(order.id) === String(orderId)
-              ? { ...order, status: "Cancelled" }
-              : order
-          )
-        : [
-            ...safeOrders,
-            ...updatedOrders.filter(
-              (order) => String(order.id) === String(orderId)
-            ),
-          ];
-
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(updatedSavedOrders)
-      );
-    } catch (error) {
-      console.error("Could not update local order:", error);
-    }
-  }
-
-  if (!loaded) {
+  if (!orders || orders.length === 0) {
     return (
-      <p className="py-8 text-center text-[#666666]">
-        Loading your orders...
-      </p>
-    );
-  }
-
-  if (orders.length === 0) {
-    return (
-      <div className="rounded-3xl border border-[#E8DDD8] bg-white px-6 py-16 text-center shadow-sm">
+      <div className="rounded-3xl border border-[#E8DDD8] bg-white px-6 py-12 text-center shadow-sm">
         <div className="mb-5 text-6xl">📦</div>
 
         <h2
@@ -128,29 +30,26 @@ function LiveOrders({ username, initialOrders = [] }) {
           No Orders Yet
         </h2>
 
-        <p className="mb-7 text-[#666666]">
-          Your orders will appear here after you place an order.
+        <p className="text-[#666666]">
+          Your completed orders will appear here.
         </p>
-
-        <Link
-          href="/menu"
-          className="inline-block rounded-xl bg-[#7A263A] px-7 py-3.5 font-bold text-white transition hover:bg-[#A64B5D]"
-        >
-          Explore Menu →
-        </Link>
       </div>
     );
   }
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-sm text-[#666666]">
-          Your orders are saved in this browser.
+          Order status updates automatically.
         </p>
 
-        <span className="text-sm text-[#777777]">
-          {orders.length} {orders.length === 1 ? "order" : "orders"}
+        <span className="shrink-0 text-xs text-[#777777]">
+          {error
+            ? "Update failed"
+            : isValidating
+              ? "Checking..."
+              : "Live updates on"}
         </span>
       </div>
 
@@ -223,6 +122,7 @@ function LiveOrders({ username, initialOrders = [] }) {
                       <p className="font-bold text-[#2F2F2F]">
                         {item.name}
                       </p>
+
                       <p className="text-sm text-[#777777]">
                         {item.quantity} × {item.price} ETB
                       </p>
@@ -256,6 +156,7 @@ function LiveOrders({ username, initialOrders = [] }) {
                   <span className="text-lg font-bold text-[#2F2F2F]">
                     Total
                   </span>
+
                   <span className="text-2xl font-bold text-[#7A263A]">
                     {order.total} ETB
                   </span>
@@ -264,15 +165,7 @@ function LiveOrders({ username, initialOrders = [] }) {
             </div>
 
             {order.status !== "Cancelled" && (
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={() => handleCancel(order.id)}
-                  className="rounded-lg border border-[#A23B3B] px-4 py-2 text-sm font-bold text-[#A23B3B] transition hover:bg-[#A23B3B] hover:text-white"
-                >
-                  Cancel Order
-                </button>
-              </div>
+              <CancelOrderButton orderId={order.id} />
             )}
           </article>
         ))}
