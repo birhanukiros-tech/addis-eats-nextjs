@@ -66,8 +66,28 @@ function CheckoutPage() {
   }
 
 useEffect(() => {
-  if (!actionState?.success) {
+  if (!actionState?.success || !actionState.order) {
     return;
+  }
+
+  try {
+    const saved = localStorage.getItem("addis-eats-orders");
+    const existingOrders = saved ? JSON.parse(saved) : [];
+    const orders = Array.isArray(existingOrders) ? existingOrders : [];
+
+    const updatedOrders = [
+      actionState.order,
+      ...orders.filter(
+        (order) => String(order.id) !== String(actionState.order.id)
+      ),
+    ];
+
+    localStorage.setItem(
+      "addis-eats-orders",
+      JSON.stringify(updatedOrders)
+    );
+  } catch (error) {
+    console.error("Could not save order locally:", error);
   }
 
   router.push("/checkout/success");
