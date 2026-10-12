@@ -1,31 +1,156 @@
+
 "use client";
 
-import useSWR from "swr";
-import CancelOrderButton from "@/components/CancelOrderButton";
-import fetcher from "@/lib/fetcher";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
-function LiveOrders({ initialOrders }) {
-  const { data, error, isValidating } = useSWR("/api/orders", fetcher, {
-    fallbackData: { data: initialOrders },
-    refreshInterval: 5000,
-    revalidateOnFocus: true,
-  });
+const STORAGE_KEY = "addis-eats-orders";
 
-  const orders = data?.data ?? initialOrders;
+function LiveOrders({ username, initialOrders = [] }) {
+  const [orders, setOrders] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    function loadOrders() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const localOrders = saved ? JSON.parse(saved) : [];
+
+        const combined = [
+          ...(Array.isArray(initialOrders) ? initialOrders : []),
+          ...(Array.isArray(localOrders) ? localOrders : []),
+        ];
+
+        const matchingOrders = combined.filter(
+          (order) =>
+            order &&
+            String(order.customerId).toLowerCase() ===
+              String(username).toLowerCase()
+        );
+
+        // Avoid showing the same order twice.
+        const uniqueOrders = [
+          ...new Map(
+            matchingOrders.map((order) => [
+              String(order.id),
+              order,
+            ])
+          ).values(),
+        ];
+
+        uniqueOrders.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() -
+            new Date(a.createdAt).getTime()
+        );
+
+        setOrders(uniqueOrders);
+      } catch (error) {
+        console.error("Could not load local orders:", error);
+        setOrders([]);
+      }
+
+      setLoaded(true);
+    }
+
+    loadOrders();
+
+    function handleStorageChange(event) {
+      if (event.key === STORAGE_KEY || event.key === null) {
+        loadOrders();
+      }
+    }
+
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [username, initialOrders]);
+
+  function handleCancel(orderId) {
+    const updatedOrders = orders.map((order) =>
+      String(order.id) === String(orderId)
+        ? { ...order, status: "Cancelled" }
+        : order
+    );
+
+    setOrders(updatedOrders);
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const allOrders = saved ? JSON.parse(saved) : [];
+
+      const safeOrders = Array.isArray(allOrders) ? allOrders : [];
+      const exists = safeOrders.some(
+        (order) => String(order.id) === String(orderId)
+      );
+
+      const updatedSavedOrders = exists
+        ? safeOrders.map((order) =>
+            String(order.id) === String(orderId)
+              ? { ...order, status: "Cancelled" }
+              : order
+          )
+        : [
+            ...safeOrders,
+            ...updatedOrders.filter(
+              (order) => String(order.id) === String(orderId)
+            ),
+          ];
+
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(updatedSavedOrders)
+      );
+    } catch (error) {
+      console.error("Could not update local order:", error);
+    }
+  }
+
+  if (!loaded) {
+    return (
+      <p className="py-8 text-center text-[#666666]">
+        Loading your orders...
+      </p>
+    );
+  }
+
+  if (orders.length === 0) {
+    return (
+      <div className="rounded-3xl border border-[#E8DDD8] bg-white px-6 py-16 text-center shadow-sm">
+        <div className="mb-5 text-6xl">📦</div>
+
+        <h2
+          className="mb-3 text-3xl font-bold text-[#2F2F2F]"
+          style={{ fontFamily: "Georgia, serif" }}
+        >
+          No Orders Yet
+        </h2>
+
+        <p className="mb-7 text-[#666666]">
+          Your orders will appear here after you place an order.
+        </p>
+
+        <Link
+          href="/menu"
+          className="inline-block rounded-xl bg-[#7A263A] px-7 py-3.5 font-bold text-white transition hover:bg-[#A64B5D]"
+        >
+          Explore Menu →
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-[#666666]">
-          Order status updates automatically.
+          Your orders are saved in this browser.
         </p>
 
-        <span className="text-xs text-[#777777]">
-          {error
-            ? "Update failed"
-            : isValidating
-              ? "Checking..."
-              : "Live updates on"}
+        <span className="text-sm text-[#777777]">
+          {orders.length} {orders.length === 1 ? "order" : "orders"}
         </span>
       </div>
 
@@ -40,6 +165,7 @@ function LiveOrders({ initialOrders }) {
                 <p className="text-sm font-semibold text-[#777777]">
                   Order #{order.id}
                 </p>
+
                 <p className="mt-1 text-sm text-[#666666]">
                   {new Date(order.createdAt).toLocaleString()}
                 </p>
@@ -52,20 +178,30 @@ function LiveOrders({ initialOrders }) {
 
             <div className="mb-6 grid gap-4 border-b border-[#E8DDD8] pb-6 sm:grid-cols-2">
               <div>
-                <p className="text-sm font-semibold text-[#777777]">Customer</p>
-                <p className="mt-1 font-bold text-[#2F2F2F]">{order.name}</p>
+                <p className="text-sm font-semibold text-[#777777]">
+                  Customer
+                </p>
+                <p className="mt-1 font-bold text-[#2F2F2F]">
+                  {order.name}
+                </p>
               </div>
 
               <div>
-                <p className="text-sm font-semibold text-[#777777]">Phone</p>
-                <p className="mt-1 font-bold text-[#2F2F2F]">{order.phone}</p>
+                <p className="text-sm font-semibold text-[#777777]">
+                  Phone
+                </p>
+                <p className="mt-1 font-bold text-[#2F2F2F]">
+                  {order.phone}
+                </p>
               </div>
 
               <div className="sm:col-span-2">
                 <p className="text-sm font-semibold text-[#777777]">
                   Delivery Address
                 </p>
-                <p className="mt-1 font-bold text-[#2F2F2F]">{order.address}</p>
+                <p className="mt-1 font-bold text-[#2F2F2F]">
+                  {order.address}
+                </p>
               </div>
             </div>
 
@@ -78,13 +214,15 @@ function LiveOrders({ initialOrders }) {
               </h2>
 
               <div className="space-y-3">
-                {order.items.map((item) => (
+                {(order.items || []).map((item) => (
                   <div
                     key={item.id}
                     className="flex items-center justify-between gap-4 rounded-xl bg-[#F8F4EC] px-4 py-3"
                   >
                     <div>
-                      <p className="font-bold text-[#2F2F2F]">{item.name}</p>
+                      <p className="font-bold text-[#2F2F2F]">
+                        {item.name}
+                      </p>
                       <p className="text-sm text-[#777777]">
                         {item.quantity} × {item.price} ETB
                       </p>
@@ -126,7 +264,15 @@ function LiveOrders({ initialOrders }) {
             </div>
 
             {order.status !== "Cancelled" && (
-              <CancelOrderButton orderId={order.id} />
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => handleCancel(order.id)}
+                  className="rounded-lg border border-[#A23B3B] px-4 py-2 text-sm font-bold text-[#A23B3B] transition hover:bg-[#A23B3B] hover:text-white"
+                >
+                  Cancel Order
+                </button>
+              </div>
             )}
           </article>
         ))}
