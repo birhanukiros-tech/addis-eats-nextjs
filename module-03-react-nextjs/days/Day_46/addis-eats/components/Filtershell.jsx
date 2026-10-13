@@ -1,66 +1,131 @@
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import useSWR from "swr";
 import DishList from "./DishList";
-import fetcher from "@/lib/fetcher";
+import {
+  DISHES_UPDATED_EVENT,
+  readBrowserDishes,
+} from "@/lib/dish-storage";
 
-function FilterShall({ dishes, category = "all" }) {
+const PAGE_SIZE = 6;
+
+function FilterShall({ dishes: initialDishes, category = "all" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const requestedPage = Number(searchParams.get("page"));
   const pageFromUrl =
-    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    Number.isInteger(requestedPage) && requestedPage > 0
+      ? requestedPage
+      : 1;
 
+  const [allDishes, setAllDishes] = useState(initialDishes);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(pageFromUrl);
+  const [storageReady, setStorageReady] = useState(false);
 
-  // Keep the selected page synchronized with the URL.
+  // Load saved Admin changes and keep this menu synchronized.
+  useEffect(() => {
+    function refreshDishes() {
+      setAllDishes(readBrowserDishes(initialDishes));
+      setStorageReady(true);
+    }
+
+    refreshDishes();
+
+    window.addEventListener("storage", refreshDishes);
+    window.addEventListener(DISHES_UPDATED_EVENT, refreshDishes);
+
+    return () => {
+      window.removeEventListener("storage", refreshDishes);
+      window.removeEventListener(DISHES_UPDATED_EVENT, refreshDishes);
+    };
+  }, [initialDishes]);
+
+  // Keep page state synchronized with the URL.
   useEffect(() => {
     setPage(pageFromUrl);
   }, [pageFromUrl]);
 
-  // =================================
-  // DEBOUNCE SEARCH
-  // =================================
-
+  // Debounce the search input.
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm.trim().toLowerCase());
       setPage(1);
     }, 300);
 
-    return () => {
-      clearTimeout(timer);
-    };
+    return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Reset pagination when the user changes the search term.
+  // Only enabled dishes should appear on the customer menu.
+  const categoryDishes = useMemo(
+    () =>
+      allDishes.filter(
+        (dish) =>
+          dish.enabled !== false &&
+          (category === "all" || dish.category === category),
+      ),
+    [allDishes, category],
+  );
+
+  const filteredDishes = useMemo(
+    () =>
+      categoryDishes.filter((dish) =>
+        dish.name.toLowerCase().includes(debouncedSearch),
+      ),
+    [categoryDishes, debouncedSearch],
+  );
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredDishes.length / PAGE_SIZE),
+  );
+  const currentPage = Math.min(page, totalPages);
+
+  const displayedDishes = filteredDishes.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+
+  // Keep the URL valid when deletions reduce the number of pages.
+  useEffect(() => {
+    if (page <= totalPages) return;
+
+    setPage(totalPages);
+
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (totalPages > 1) {
+      params.set("page", String(totalPages));
+    } else {
+      params.delete("page");
+    }
+
+    const query = params.toString();
+    router.replace(query ? `/menu?${query}` : "/menu", {
+      scroll: false,
+    });
+  }, [page, totalPages, router, searchParams]);
+
   function handleSearchChange(event) {
     setSearchTerm(event.target.value);
     setPage(1);
 
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
 
-    if (params.has("page")) {
-      params.delete("page");
-
-      const query = params.toString();
-
-      router.replace(query ? `/menu?${query}` : "/menu", {
-        scroll: false,
-      });
-    }
+    const query = params.toString();
+    router.replace(query ? `/menu?${query}` : "/menu", {
+      scroll: false,
+    });
   }
 
-  // =================================
-  // PAGINATION + URL
-  // =================================
-
   function handlePageChange(nextPage) {
+    if (nextPage < 1 || nextPage > totalPages) return;
+
     setPage(nextPage);
 
     const params = new URLSearchParams(searchParams.toString());
@@ -72,80 +137,33 @@ function FilterShall({ dishes, category = "all" }) {
     }
 
     const query = params.toString();
-
     router.push(query ? `/menu?${query}` : "/menu", {
       scroll: false,
     });
   }
 
-  // =================================
-  // NORMAL MENU QUERY
-  // =================================
-
-  const categoryQuery =
-    category === "all" ? "" : `&category=${encodeURIComponent(category)}`;
-
-  const menuKey = `/api/dishes?page=${page}&limit=6${categoryQuery}`;
-
-  // Use the selected page's dishes for the initial display.
-  const initialPageData = {
-    data: dishes.slice((page - 1) * 6, page * 6),
-    pagination: {
-      page,
-      limit: 6,
-      total: dishes.length,
-      totalPages: Math.ceil(dishes.length / 6),
-    },
-  };
-
-  const {
-    data: menuData,
-    error: menuError,
-    isLoading: menuLoading,
-    isValidating: menuValidating,
-  } = useSWR(menuKey, fetcher, {
-    fallbackData: initialPageData,
-    keepPreviousData: true,
-    dedupingInterval: 30000,
-  });
-
-  // =================================
-  // SEARCH QUERY
-  // =================================
-
-  const searchKey = debouncedSearch
-    ? `/api/dishes?search=${encodeURIComponent(
-        debouncedSearch,
-      )}&page=${page}&limit=6${categoryQuery}`
-    : null;
-
-  const {
-    data: searchData,
-    error: searchError,
-    isLoading: searchLoading,
-    isValidating: searchValidating,
-  } = useSWR(searchKey, fetcher, {
-    keepPreviousData: true,
-    dedupingInterval: 30000,
-  });
-
-  // =================================
-  // CHOOSE WHICH DATA TO DISPLAY
-  // =================================
-
-  const activeData = debouncedSearch ? searchData : menuData;
-
-  const displayedDishes = activeData?.data || [];
-  const pagination = activeData?.pagination;
-
-  const error = debouncedSearch ? searchError : menuError;
-  const isLoading = debouncedSearch ? searchLoading : menuLoading;
-  const isValidating = debouncedSearch ? searchValidating : menuValidating;
-
   return (
     <section>
-      {/* SEARCH */}
+      {/* Category heading and live dish count */}
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <p className="mb-1 text-sm font-bold uppercase tracking-wider text-[#A64B5D]">
+            MENU
+          </p>
 
+          <h2 className="text-2xl font-bold capitalize text-[#2F2F2F] sm:text-3xl">
+            {category === "all"
+              ? "All Dishes"
+              : category.replace("-", " ")}
+          </h2>
+        </div>
+
+        <span className="rounded-full bg-[#F1E2E5] px-4 py-2 text-sm font-bold text-[#7A263A]">
+          {categoryDishes.length} dishes
+        </span>
+      </div>
+
+      {/* Search */}
       <div className="mb-8 rounded-2xl border border-[#E8DDD8] bg-white p-5 shadow-sm">
         <label
           htmlFor="dish-search"
@@ -154,103 +172,79 @@ function FilterShall({ dishes, category = "all" }) {
           Search Our Menu
         </label>
 
-        <div className="relative">
-          <input
-            id="dish-search"
-            type="search"
-            value={searchTerm}
-            onChange={handleSearchChange}
-            placeholder="Search for a dish..."
-            className="w-full rounded-xl border border-[#D8C9C5] bg-[#F8F4EC] px-5 py-3.5 pr-12 text-[#2F2F2F] outline-none transition placeholder:text-[#888888] focus:border-[#7A263A] focus:ring-2 focus:ring-[#7A263A]/20"
-          />
-
-          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-lg text-[#7A263A]">
-            🔍
-          </span>
-        </div>
+        <input
+          id="dish-search"
+          type="search"
+          value={searchTerm}
+          onChange={handleSearchChange}
+          placeholder="Search for a dish..."
+          className="w-full rounded-xl border border-[#D8C9C5] bg-[#F8F4EC] px-5 py-3.5 text-[#2F2F2F] outline-none transition placeholder:text-[#888888] focus:border-[#7A263A] focus:ring-2 focus:ring-[#7A263A]/20"
+        />
 
         {searchTerm && (
           <p className="mt-3 text-sm text-[#666666]">
-            {searchLoading
+            {searchTerm.trim().toLowerCase() !== debouncedSearch
               ? "Searching..."
-              : `${searchData?.pagination?.total || 0} ${
-                  searchData?.pagination?.total === 1 ? "dish" : "dishes"
-                } found for `}
-            {!searchLoading && (
-              <span className="font-bold text-[#7A263A]">"{searchTerm}"</span>
-            )}
+              : `${filteredDishes.length} ${
+                  filteredDishes.length === 1 ? "dish" : "dishes"
+                } found for "${searchTerm}"`}
           </p>
         )}
       </div>
 
-      {/* ERROR */}
-
-      {error && (
-        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-6 py-5 text-center">
-          <p className="font-semibold text-red-700">Failed to load dishes.</p>
-        </div>
-      )}
-
-      {/* LOADING */}
-
-      {isLoading && displayedDishes.length === 0 && (
+      {/* Dish loading state */}
+      {!storageReady && (
         <p className="mb-6 text-center text-sm text-[#666666]">
-          Loading dishes...
+          Loading menu...
         </p>
       )}
 
-      {/* DISHES */}
-
+      {/* Loaded and empty states */}
       {displayedDishes.length > 0 ? (
         <DishList dishes={displayedDishes} />
       ) : (
         <div className="rounded-2xl border border-[#E8DDD8] bg-white px-6 py-14 text-center shadow-sm">
-          <div className="mb-4 text-5xl">🍽️</div>
+          <div className="mb-4 text-5xl" aria-hidden="true">
+            🍽️
+          </div>
 
           <h3 className="mb-2 text-2xl font-bold text-[#2F2F2F]">
-            No dishes found
+            {debouncedSearch ? "No dishes found" : "No dishes available"}
           </h3>
 
           <p className="text-[#666666]">
-            Try searching for another dish, category, or ingredient.
+            {debouncedSearch
+              ? "Try another dish name."
+              : "Please check back later for available dishes."}
           </p>
         </div>
       )}
 
-      {/* PAGINATION */}
-
-      {pagination && pagination.totalPages > 1 && (
+      {/* URL-based pagination */}
+      {filteredDishes.length > 0 && totalPages > 1 && (
         <div className="flex items-center justify-center gap-4 py-8">
           <button
             type="button"
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page <= 1}
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage <= 1}
             className="rounded-xl bg-[#7A263A] px-5 py-3 font-bold text-white transition hover:bg-[#A64B5D] disabled:cursor-not-allowed disabled:opacity-40"
           >
             Previous
           </button>
 
           <span className="font-bold text-[#2F2F2F]">
-            Page {pagination.page} of {pagination.totalPages}
+            Page {currentPage} of {totalPages}
           </span>
 
           <button
             type="button"
-            onClick={() => handlePageChange(page + 1)}
-            disabled={page >= pagination.totalPages}
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage >= totalPages}
             className="rounded-xl bg-[#7A263A] px-5 py-3 font-bold text-white transition hover:bg-[#A64B5D] disabled:cursor-not-allowed disabled:opacity-40"
           >
             Next
           </button>
         </div>
-      )}
-
-      {/* BACKGROUND UPDATE */}
-
-      {isValidating && (
-        <p className="mt-4 text-center text-sm text-[#666666]">
-          Updating results...
-        </p>
       )}
     </section>
   );
