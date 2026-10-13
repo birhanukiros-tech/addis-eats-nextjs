@@ -1,13 +1,9 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useCart } from "./Providers";
-import {
-  DISHES_UPDATED_EVENT,
-  readBrowserDishes,
-} from "@/lib/dish-storage";
+import { DISHES_UPDATED_EVENT, readBrowserDishes } from "@/lib/dish-storage";
 import { downloadCsv } from "@/lib/csv";
 import { etb, when } from "@/lib/format";
 
@@ -18,9 +14,7 @@ function formatDate(value) {
 
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime())
-    ? "Date unavailable"
-    : when.format(date);
+  return Number.isNaN(date.getTime()) ? "Date unavailable" : when.format(date);
 }
 
 function formatMoney(value) {
@@ -53,8 +47,7 @@ function LiveOrders({ username, initialDishes = [] }) {
 
         customerOrders.sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() -
-            new Date(a.createdAt).getTime(),
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
 
         setOrders(customerOrders);
@@ -86,36 +79,30 @@ function LiveOrders({ username, initialDishes = [] }) {
     };
   }, [username]);
 
-function handleExportCsv() {
-  const rows = orders.map((order) => ({
-    "Order ID": order.id ?? "",
-    "Order Date": order.createdAt
-      ? formatDate(order.createdAt)
-      : "Date unavailable",
-    Status: order.status || "",
-    Customer: order.name || "",
-    Phone: order.phone || "",
-    "Delivery Address": order.address || "",
-    Items: (order.items || [])
-      .map(
-        (item) =>
-          `${item.name || "Dish"} x${Number(item.quantity) || 0}`,
-      )
-      .join("; "),
-    "Subtotal ETB": order.subtotal ?? 0,
-    "Delivery Fee ETB": order.deliveryFee ?? 0,
-    "Total ETB": order.total ?? 0,
-  }));
+  function handleExportCsv() {
+    const rows = orders.map((order) => ({
+      "Order ID": order.id ?? "",
+      "Order Date": order.createdAt
+        ? formatDate(order.createdAt)
+        : "Date unavailable",
+      Status: order.status || "",
+      Customer: order.name || "",
+      Phone: order.phone || "",
+      "Delivery Address": order.address || "",
+      Items: (order.items || [])
+        .map((item) => `${item.name || "Dish"} x${Number(item.quantity) || 0}`)
+        .join("; "),
+      "Subtotal ETB": order.subtotal ?? 0,
+      "Delivery Fee ETB": order.deliveryFee ?? 0,
+      "Total ETB": order.total ?? 0,
+    }));
 
-  const downloaded = downloadCsv(
-    rows,
-    "addis-eats-orders.csv",
-  );
+    const downloaded = downloadCsv(rows, "addis-eats-orders.csv");
 
-  if (!downloaded) {
-    console.error("CSV export failed: no order data found.");
+    if (!downloaded) {
+      console.error("CSV export failed: no order data found.");
+    }
   }
-}
 
   function handleCancel(orderId) {
     const updatedOrders = orders.map((order) =>
@@ -139,10 +126,7 @@ function handleExportCsv() {
           )
         : updatedOrders;
 
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(updatedSavedOrders),
-      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSavedOrders));
 
       setOrders(updatedOrders);
       window.dispatchEvent(new Event("addis-eats-orders-updated"));
@@ -183,8 +167,7 @@ function handleExportCsv() {
     let message = "";
 
     if (addedQuantity > 0) {
-      message =
-        `${addedQuantity} item${addedQuantity === 1 ? "" : "s"} added to your cart using current prices.`;
+      message = `${addedQuantity} item${addedQuantity === 1 ? "" : "s"} added to your cart using current prices.`;
     }
 
     if (unavailable.length > 0) {
@@ -203,9 +186,7 @@ function handleExportCsv() {
 
   if (!loaded) {
     return (
-      <p className="py-8 text-center text-[#666666]">
-        Loading your orders...
-      </p>
+      <p className="py-8 text-center text-[#666666]">Loading your orders...</p>
     );
   }
 
@@ -225,6 +206,15 @@ function handleExportCsv() {
           Your orders will appear here after you place an order.
         </p>
 
+        <button
+          type="button"
+          disabled
+          title="There are no matching saved orders to export"
+          className="mb-4 inline-block cursor-not-allowed rounded-xl border border-[#7A263A] px-6 py-3 font-bold text-[#7A263A] opacity-60"
+        >
+          Export Orders to CSV
+        </button>
+
         <Link
           href="/menu"
           className="inline-block rounded-xl bg-[#7A263A] px-7 py-3.5 font-bold text-white transition hover:bg-[#A64B5D]"
@@ -239,8 +229,8 @@ function handleExportCsv() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-[#666666]">
-          {orders.length} {orders.length === 1 ? "order" : "orders"} saved
-          in this browser.
+          {orders.length} {orders.length === 1 ? "order" : "orders"} saved in
+          this browser.
         </p>
 
         <button
@@ -276,30 +266,20 @@ function handleExportCsv() {
 
           <div className="mb-6 grid gap-4 border-b border-[#E8DDD8] pb-6 sm:grid-cols-2">
             <div>
-              <p className="text-sm font-semibold text-[#777777]">
-                Customer
-              </p>
-              <p className="mt-1 font-bold text-[#2F2F2F]">
-                {order.name}
-              </p>
+              <p className="text-sm font-semibold text-[#777777]">Customer</p>
+              <p className="mt-1 font-bold text-[#2F2F2F]">{order.name}</p>
             </div>
 
             <div>
-              <p className="text-sm font-semibold text-[#777777]">
-                Phone
-              </p>
-              <p className="mt-1 font-bold text-[#2F2F2F]">
-                {order.phone}
-              </p>
+              <p className="text-sm font-semibold text-[#777777]">Phone</p>
+              <p className="mt-1 font-bold text-[#2F2F2F]">{order.phone}</p>
             </div>
 
             <div className="sm:col-span-2">
               <p className="text-sm font-semibold text-[#777777]">
                 Delivery Address
               </p>
-              <p className="mt-1 font-bold text-[#2F2F2F]">
-                {order.address}
-              </p>
+              <p className="mt-1 font-bold text-[#2F2F2F]">{order.address}</p>
             </div>
           </div>
 
@@ -318,18 +298,14 @@ function handleExportCsv() {
                   className="flex items-center justify-between gap-4 rounded-xl bg-[#F8F4EC] px-4 py-3"
                 >
                   <div>
-                    <p className="font-bold text-[#2F2F2F]">
-                      {item.name}
-                    </p>
+                    <p className="font-bold text-[#2F2F2F]">{item.name}</p>
                     <p className="text-sm text-[#777777]">
                       {item.quantity} × {formatMoney(item.price)}
                     </p>
                   </div>
 
                   <p className="font-bold text-[#7A263A]">
-                    {formatMoney(
-                      Number(item.price) * Number(item.quantity),
-                    )}
+                    {formatMoney(Number(item.price) * Number(item.quantity))}
                   </p>
                 </div>
               ))}
@@ -353,9 +329,7 @@ function handleExportCsv() {
               </div>
 
               <div className="flex items-center justify-between border-t border-[#E8DDD8] pt-3">
-                <span className="text-lg font-bold text-[#2F2F2F]">
-                  Total
-                </span>
+                <span className="text-lg font-bold text-[#2F2F2F]">Total</span>
                 <span className="text-2xl font-bold text-[#7A263A]">
                   {formatMoney(order.total)}
                 </span>
