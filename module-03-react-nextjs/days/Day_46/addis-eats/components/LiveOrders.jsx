@@ -1,13 +1,24 @@
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useCart } from "./Providers";
+import {
+  DISHES_UPDATED_EVENT,
+  readBrowserDishes,
+} from "@/lib/dish-storage";
 
 const STORAGE_KEY = "addis-eats-orders";
 
-function LiveOrders({ username }) {
+function LiveOrders({ username, initialDishes = [] }) {
+  const { addToCart } = useCart();
+  const initialDishesRef = useRef(initialDishes);
+
   const [orders, setOrders] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [menuDishes, setMenuDishes] = useState(initialDishes);
+  const [reorderMessages, setReorderMessages] = useState({});
 
   useEffect(() => {
     function loadOrders() {
@@ -26,7 +37,8 @@ function LiveOrders({ username }) {
 
         customerOrders.sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+            new Date(b.createdAt).getTime() -
+            new Date(a.createdAt).getTime(),
         );
 
         setOrders(customerOrders);
@@ -38,18 +50,21 @@ function LiveOrders({ username }) {
       setLoaded(true);
     }
 
-    loadOrders();
-
-    function handleStorageChange(event) {
-      if (event.key === STORAGE_KEY || event.key === null) {
-        loadOrders();
-      }
+    function loadDishes() {
+      setMenuDishes(readBrowserDishes(initialDishesRef.current));
     }
 
-    window.addEventListener("storage", handleStorageChange);
+    loadOrders();
+    loadDishes();
+
+    window.addEventListener("storage", loadOrders);
+    window.addEventListener("storage", loadDishes);
+    window.addEventListener(DISHES_UPDATED_EVENT, loadDishes);
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("storage", loadOrders);
+      window.removeEventListener("storage", loadDishes);
+      window.removeEventListener(DISHES_UPDATED_EVENT, loadDishes);
     };
   }, [username]);
 
@@ -60,38 +75,90 @@ function LiveOrders({ username }) {
         : order,
     );
 
-    setOrders(updatedOrders);
-
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      const parsedOrders = saved ? JSON.parse(saved) : [];
-      const allOrders = Array.isArray(parsedOrders) ? parsedOrders : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      const allOrders = Array.isArray(parsed) ? parsed : [];
 
-      const selectedOrder = updatedOrders.find(
+      const updatedSavedOrders = allOrders.some(
         (order) => String(order.id) === String(orderId),
-      );
-
-      const orderExists = allOrders.some(
-        (order) => String(order.id) === String(orderId),
-      );
-
-      const updatedSavedOrders = orderExists
+      )
         ? allOrders.map((order) =>
             String(order.id) === String(orderId)
               ? { ...order, status: "Cancelled" }
               : order,
           )
-        : [selectedOrder, ...allOrders];
+        : updatedOrders;
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSavedOrders));
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(updatedSavedOrders),
+      );
+
+      setOrders(updatedOrders);
+      window.dispatchEvent(new Event("addis-eats-orders-updated"));
     } catch (error) {
       console.error("Could not save cancellation:", error);
     }
   }
 
+  function handleReorder(order) {
+    const currentDishes = readBrowserDishes(initialDishesRef.current);
+    let addedQuantity = 0;
+    const unavailable = [];
+
+    for (const item of order.items || []) {
+      const dish = currentDishes.find(
+        (currentDish) =>
+          String(currentDish.id) === String(item.id) ||
+          (
+            currentDish.name?.toLowerCase() ===
+            item.name?.toLowerCase()
+          ),
+      );
+
+      if (!dish || dish.enabled === false) {
+        unavailable.push(item.name || "An unavailable dish");
+        continue;
+      }
+
+      const requestedQuantity = Math.max(
+        1,
+        Math.min(50, Math.trunc(Number(item.quantity) || 1)),
+      );
+
+      // Add through the existing cart logic, using the current dish price.
+      for (let count = 0; count < requestedQuantity; count++) {
+        addToCart(dish);
+        addedQuantity++;
+      }
+    }
+
+    let message = "";
+
+    if (addedQuantity > 0) {
+      message = `${addedQuantity} item${addedQuantity === 1 ? "" : "s"} added to your cart using current prices.`;
+    }
+
+    if (unavailable.length > 0) {
+      message += `${message ? " " : ""}Unavailable dishes skipped: ${unavailable.join(", ")}.`;
+    }
+
+    if (addedQuantity === 0 && unavailable.length === 0) {
+      message = "This order has no items to reorder.";
+    }
+
+    setReorderMessages((current) => ({
+      ...current,
+      [order.id]: message,
+    }));
+  }
+
   if (!loaded) {
     return (
-      <p className="py-8 text-center text-[#666666]">Loading your orders...</p>
+      <p className="py-8 text-center text-[#666666]">
+        Loading your orders...
+      </p>
     );
   }
 
@@ -124,8 +191,7 @@ function LiveOrders({ username }) {
   return (
     <div className="space-y-6">
       <div className="text-sm text-[#666666]">
-        {orders.length} {orders.length === 1 ? "order" : "orders"} saved in this
-        browser.
+        {orders.length} {orders.length === 1 ? "order" : "orders"} saved in this browser.
       </div>
 
       {orders.map((order) => (
@@ -179,14 +245,13 @@ function LiveOrders({ username }) {
             </h2>
 
             <div className="space-y-3">
-              {(order.items || []).map((item) => (
+              {(order.items || []).map((item, index) => (
                 <div
-                  key={item.id}
+                  key={`${order.id}-${item.id ?? index}`}
                   className="flex items-center justify-between gap-4 rounded-xl bg-[#F8F4EC] px-4 py-3"
                 >
                   <div>
                     <p className="font-bold text-[#2F2F2F]">{item.name}</p>
-
                     <p className="text-sm text-[#777777]">
                       {item.quantity} × {item.price} ETB
                     </p>
@@ -218,7 +283,6 @@ function LiveOrders({ username }) {
 
               <div className="flex items-center justify-between border-t border-[#E8DDD8] pt-3">
                 <span className="text-lg font-bold text-[#2F2F2F]">Total</span>
-
                 <span className="text-2xl font-bold text-[#7A263A]">
                   {order.total} ETB
                 </span>
@@ -226,8 +290,25 @@ function LiveOrders({ username }) {
             </div>
           </div>
 
-          {order.status !== "Cancelled" && (
-            <div className="mt-4">
+          {reorderMessages[order.id] && (
+            <p
+              role="status"
+              className="mt-4 rounded-xl bg-[#EEF4EE] px-4 py-3 text-sm text-[#32653A]"
+            >
+              {reorderMessages[order.id]}
+            </p>
+          )}
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => handleReorder(order)}
+              className="rounded-lg bg-[#7A263A] px-4 py-2 font-bold text-white transition hover:bg-[#A64B5D]"
+            >
+              Reorder
+            </button>
+
+            {order.status !== "Cancelled" && (
               <button
                 type="button"
                 onClick={() => handleCancel(order.id)}
@@ -235,8 +316,8 @@ function LiveOrders({ username }) {
               >
                 Cancel Order
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </article>
       ))}
     </div>
