@@ -14,6 +14,10 @@ export function getOrder(orderId) {
   return orders.get(String(orderId));
 }
 
+export function getAllOrders() {
+  return Array.from(orders.values());
+}
+
 export function getOrdersFor(customerId) {
   return Array.from(orders.values()).filter(
     (order) => order.customerId === customerId
