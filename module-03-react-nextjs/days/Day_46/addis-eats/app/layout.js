@@ -58,7 +58,8 @@ async function RootLayout({ children }) {
   const customer = await getCurrentCustomer();
 
   return (
-    <html lang="en" className={inter.className}>
+    <html lang="en" className={inter.className}
+     data-scroll-behavior="smooth">
       <body>
         <Providers customer={customer}>
           <Suspense fallback={null}>
