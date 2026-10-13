@@ -1,10 +1,8 @@
-
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { getDish, getDishes } from "@/lib/dishes";
 import { createDishSlug } from "@/lib/dish-slug";
-
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
@@ -23,8 +21,7 @@ export async function generateMetadata({ params }) {
   const siteUrl = "https://addis-eats-nextjs-o13s.vercel.app";
   const slug = createDishSlug(dish.name);
 
-  const rawDescription =
-    `${dish.name} - ${dish.price} ETB. ${dish.description}`;
+  const rawDescription = `${dish.name} - ${dish.price} ETB. ${dish.description}`;
 
   const description =
     rawDescription.length > 155
@@ -85,7 +82,10 @@ async function DishPage({ params }) {
     "@type": "MenuItem",
     name: dish.name,
     description: dish.description,
-    image: dish.image,
+    image: new URL(
+      dish.image,
+      "https://addis-eats-nextjs-o13s.vercel.app",
+    ).toString(),
     offers: {
       "@type": "Offer",
       price: dish.price,
