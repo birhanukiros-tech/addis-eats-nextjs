@@ -4,6 +4,8 @@ import { getSession } from "@/lib/session";
 import { getDishes } from "@/lib/dishes";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminDishManager from "@/components/AdminDishManager";
+import AdminOrderManager from "@/components/AdminOrderManager";
+
 
 export const metadata = {
   title: "Admin Panel | Addis Eats",
@@ -92,19 +94,7 @@ export default async function KitchenPage({ searchParams }) {
             {activeView === "dishes" && (
               <AdminDishManager initialDishes={initialDishes} />
             )}
-
-            {activeView === "orders" && (
-              <section>
-                <h2 className="text-2xl font-bold text-[#2F2F2F]">
-                  Order Management
-                </h2>
-
-                <p className="mt-2 text-[#666666]">
-                  The staff order table and order-status controls
-                  will be added here.
-                </p>
-              </section>
-            )}
+            {activeView === "orders" && <AdminOrderManager />}
           </div>
         </section>
       </div>

@@ -1,9 +1,8 @@
-
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { logout } from "@/app/actions";
 import { useCart } from "./Providers";
 import CartDrawer from "./CartDrawer";
@@ -13,6 +12,11 @@ function Header({ customer }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
   const { cartCount, cartOpen, closeCartDrawer } = useCart();
 
   function handleLogout() {
@@ -62,7 +66,7 @@ function Header({ customer }) {
             </Link>
 
             <Link href="/cart" className={linkClass}>
-              Cart {cartCount > 0 && `(${cartCount})`}
+              Cart {hasMounted && cartCount > 0 && `(${cartCount})`}
             </Link>
 
             <Link href="/orders" className={linkClass}>
