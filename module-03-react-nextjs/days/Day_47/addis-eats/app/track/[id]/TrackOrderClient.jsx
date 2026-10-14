@@ -14,21 +14,18 @@ export default function TrackOrderClient({
   role,
   initialOrder,
 }) {
-  const [order, setOrder] = useState(initialOrder);
+  const [order, setOrder] = useState(initialOrder ?? null);
   const [loading, setLoading] = useState(!initialOrder);
   const [usingLocalOrder, setUsingLocalOrder] = useState(false);
-
-  // These values are populated only after the browser mounts.
-  // This keeps the server HTML and the browser's first render identical.
   const [mounted, setMounted] = useState(false);
   const [relativePlacedAt, setRelativePlacedAt] = useState("");
 
-  // Mark the component as mounted in the browser.
+  // Ensure server rendering and the first browser render match.
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Load the order from browser storage if the server has no copy.
+  // Load the order from localStorage when server memory has no copy.
   useEffect(() => {
     function loadOrder() {
       if (initialOrder) {
@@ -66,21 +63,21 @@ export default function TrackOrderClient({
 
     loadOrder();
 
-    if (!initialOrder) {
-      window.addEventListener("storage", loadOrder);
-      window.addEventListener("addis-eats-orders-updated", loadOrder);
+    // Keep browser-saved order details synchronized across tabs
+    // and with components that dispatch this custom event.
+    window.addEventListener("storage", loadOrder);
+    window.addEventListener("addis-eats-orders-updated", loadOrder);
 
-      return () => {
-        window.removeEventListener("storage", loadOrder);
-        window.removeEventListener(
-          "addis-eats-orders-updated",
-          loadOrder,
-        );
-      };
-    }
+    return () => {
+      window.removeEventListener("storage", loadOrder);
+      window.removeEventListener(
+        "addis-eats-orders-updated",
+        loadOrder,
+      );
+    };
   }, [orderId, username, role, initialOrder]);
 
-  // Calculate relative time only in the browser after hydration.
+  // Calculate relative time after mounting to avoid hydration mismatches.
   useEffect(() => {
     if (!mounted || !order?.createdAt) {
       setRelativePlacedAt("");
@@ -97,8 +94,7 @@ export default function TrackOrderClient({
     setRelativePlacedAt(formatRelativeTime(date));
   }, [mounted, order?.createdAt]);
 
-  // Shared ETB formatting after mount.
-  // Before mount, use deterministic text on both server and browser.
+  // Keep the initial currency text deterministic during hydration.
   function formatMoney(value) {
     const amount = Number(value) || 0;
 
@@ -170,6 +166,7 @@ export default function TrackOrderClient({
         </header>
 
         <section className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+          {/* Map and accessible delivery-address text */}
           <div className="rounded-3xl border border-[#E8DDD8] bg-white p-5 shadow-sm sm:p-6">
             <h2 className="mb-4 text-xl font-bold text-[#2F2F2F]">
               Delivery Map
@@ -187,41 +184,34 @@ export default function TrackOrderClient({
               </p>
 
               <p className="mt-2 text-sm text-[#666666]">
-                The courier marker is a demonstration location, not
-                live GPS. The delivery marker is based on address
-                lookup and may be approximate.
+                The Addis Eats courier marker uses a demonstration
+                location, not live GPS. The delivery marker is based
+                on address lookup and may be approximate.
               </p>
             </div>
           </div>
 
           <div className="space-y-6">
+            {/* Order status and SSE stream */}
             <section className="rounded-3xl border border-[#E8DDD8] bg-white p-6 shadow-sm">
               <h2 className="text-xl font-bold text-[#2F2F2F]">
                 Order Status
               </h2>
 
-              {usingLocalOrder ? (
-                <div className="mt-4 rounded-xl bg-[#F8F4EC] p-4">
-                  <p className="text-sm text-[#666666]">
-                    Saved status in this browser
-                  </p>
-
-                  <p className="mt-1 text-xl font-bold text-[#7A263A]">
-                    {order.status || "Preparing"}
-                  </p>
-
-                  <p className="mt-3 text-sm text-[#666666]">
-                    The server could not find this order for its live
-                    status stream. This screen is using the order
-                    saved by checkout in your browser.
-                  </p>
-                </div>
-              ) : (
-                <OrderLiveStatus
-                  orderId={String(order.id)}
-                  initialStatus={order.status}
-                />
+              {usingLocalOrder && (
+                <p className="mt-4 rounded-xl bg-[#F8F4EC] p-4 text-sm text-[#666666]">
+                  Order details are saved in this browser. The status
+                  component below will attempt an SSE connection.
+                  If the server cannot find this order, it may use
+                  the server-seeded demonstration stream.
+                </p>
               )}
+
+              {/* Attempt SSE for both server-loaded and local orders. */}
+              <OrderLiveStatus
+                orderId={String(order.id)}
+                initialStatus={order.status || "Preparing"}
+              />
 
               <div className="mt-5 border-t border-[#E8DDD8] pt-4">
                 <p className="text-sm text-[#666666]">
@@ -244,6 +234,7 @@ export default function TrackOrderClient({
               </div>
             </section>
 
+            {/* Order summary */}
             <section className="rounded-3xl border border-[#E8DDD8] bg-white p-6 shadow-sm">
               <h2 className="text-xl font-bold text-[#2F2F2F]">
                 Order Summary
@@ -270,20 +261,14 @@ export default function TrackOrderClient({
 
               <div className="mt-5 space-y-3 border-t border-[#E8DDD8] pt-4 text-sm">
                 <div className="flex justify-between gap-4">
-                  <span className="text-[#666666]">
-                    Subtotal
-                  </span>
-
+                  <span className="text-[#666666]">Subtotal</span>
                   <span className="font-semibold">
                     {formatMoney(order.subtotal)}
                   </span>
                 </div>
 
                 <div className="flex justify-between gap-4">
-                  <span className="text-[#666666]">
-                    Delivery Fee
-                  </span>
-
+                  <span className="text-[#666666]">Delivery Fee</span>
                   <span className="font-semibold">
                     {formatMoney(order.deliveryFee)}
                   </span>

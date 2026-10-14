@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 import { when, formatRelativeTime } from "@/lib/format";
 
-const terminalStatuses = ["delivered", "cancelled"];
+const TERMINAL_STATUSES = ["delivered", "cancelled"];
 const RECONNECT_TIMEOUT = 10000;
 
-export default function OrderLiveStatus({ orderId, initialStatus }) {
-  const [status, setStatus] = useState(initialStatus || "Unknown");
+export default function OrderLiveStatus({
+  orderId,
+  initialStatus,
+}) {
+  const [status, setStatus] = useState(initialStatus || "Preparing");
   const [connection, setConnection] = useState("connecting");
   const [updatedAt, setUpdatedAt] = useState(null);
+  const [demoStream, setDemoStream] = useState(false);
 
   useEffect(() => {
     let source;
@@ -17,6 +21,8 @@ export default function OrderLiveStatus({ orderId, initialStatus }) {
     let stopped = false;
 
     function stopStream(nextConnection) {
+      if (stopped) return;
+
       stopped = true;
 
       if (retryTimer) {
@@ -24,44 +30,42 @@ export default function OrderLiveStatus({ orderId, initialStatus }) {
         retryTimer = null;
       }
 
-      if (source) {
-        source.close();
-      }
-
+      source?.close();
       setConnection(nextConnection);
     }
 
-    setStatus(initialStatus || "Unknown");
+    setStatus(initialStatus || "Preparing");
     setConnection("connecting");
     setUpdatedAt(null);
+    setDemoStream(false);
 
     if (
-      terminalStatuses.includes(
-        String(initialStatus).toLowerCase()
+      TERMINAL_STATUSES.includes(
+        String(initialStatus).toLowerCase(),
       )
     ) {
       setConnection("closed");
       return;
     }
 
-    try {
-      source = new EventSource(
-        `/api/orders/${encodeURIComponent(orderId)}/stream`
-      );
-    } catch {
-      setConnection("unavailable");
-      return;
-    }
+    const seed = encodeURIComponent(initialStatus || "Preparing");
+
+    // Explicitly request the server-seeded fallback stream.
+    const url =
+      `/api/orders/${encodeURIComponent(orderId)}/stream` +
+      `?demo=1&seed=${seed}`;
+
+    source = new EventSource(url);
 
     source.onopen = () => {
       if (stopped) return;
+
+      setConnection("live");
 
       if (retryTimer) {
         clearTimeout(retryTimer);
         retryTimer = null;
       }
-
-      setConnection("live");
     };
 
     source.onmessage = (event) => {
@@ -78,27 +82,28 @@ export default function OrderLiveStatus({ orderId, initialStatus }) {
         if (!payload.status) return;
 
         setStatus(payload.status);
+        setDemoStream(Boolean(payload.demo));
         setUpdatedAt(
-          payload.updatedAt || new Date().toISOString()
+          payload.updatedAt || new Date().toISOString(),
         );
 
         if (
-          terminalStatuses.includes(
-            String(payload.status).toLowerCase()
+          TERMINAL_STATUSES.includes(
+            String(payload.status).toLowerCase(),
           )
         ) {
           stopStream("closed");
           return;
         }
 
+        setConnection("live");
+
         if (retryTimer) {
           clearTimeout(retryTimer);
           retryTimer = null;
         }
-
-        setConnection("live");
       } catch {
-        // Ignore malformed messages.
+        // Ignore malformed stream messages.
       }
     };
 
@@ -107,11 +112,8 @@ export default function OrderLiveStatus({ orderId, initialStatus }) {
 
       setConnection("reconnecting");
 
-      // EventSource retries automatically.
-      // Stop retrying if the stream remains unavailable.
       if (!retryTimer) {
         retryTimer = setTimeout(() => {
-          if (stopped) return;
           stopStream("unavailable");
         }, RECONNECT_TIMEOUT);
       }
@@ -120,10 +122,7 @@ export default function OrderLiveStatus({ orderId, initialStatus }) {
     return () => {
       stopped = true;
 
-      if (retryTimer) {
-        clearTimeout(retryTimer);
-      }
-
+      if (retryTimer) clearTimeout(retryTimer);
       source?.close();
     };
   }, [orderId, initialStatus]);
@@ -165,11 +164,18 @@ export default function OrderLiveStatus({ orderId, initialStatus }) {
         {connectionLabel}
       </p>
 
+      {demoStream && connection === "live" && (
+        <p className="mt-2 text-sm text-[#666666]">
+          Server-seeded SSE demonstration. Statuses are simulated
+          because this order is not stored in the current server
+          instance.
+        </p>
+      )}
+
       {connection === "unavailable" && (
         <p className="mt-2 text-sm text-[#666666]">
-          Showing the last known order status. Automatic live
-          updates could not connect. Refresh or revisit this
-          page later to try again.
+          Automatic updates are unavailable. The last known status
+          remains visible.
         </p>
       )}
 

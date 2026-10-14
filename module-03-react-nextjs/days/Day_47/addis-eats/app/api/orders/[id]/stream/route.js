@@ -1,117 +1,160 @@
-
 import { getOrder } from "@/lib/orders";
 import { getSession } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(request, { params }) {
-  const session = await getSession();
+const DEMO_STATUSES = [
+  "Preparing",
+  "Confirmed",
+  "Cooking",
+  "Ready",
+  "Out for delivery",
+  "Delivered",
+];
 
-  if (!session) {
-    return Response.json({ error: "Sign in required." }, { status: 401 });
-  }
+const ALLOWED_STATUSES = [...DEMO_STATUSES, "Cancelled"];
 
-  const { id } = await params;
-  const order = getOrder(id);
-
-  if (!order) {
-    return Response.json({ error: "Order not found." }, { status: 404 });
-  }
-
-  // Customers may only stream their own orders; staff may stream any order.
-  if (
-    session.role !== "staff" &&
-    String(order.customerId).toLowerCase() !==
-      String(session.username).toLowerCase()
-  ) {
-    return Response.json({ error: "Order not found." }, { status: 404 });
-  }
+function createSseResponse(request, id, seed, isDemo) {
+  let cleanup = () => {};
 
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
-      let intervalId;
-      let heartbeatId;
       let closed = false;
-      let lastStatus;
+      let timer = null;
+      let heartbeat = null;
 
       function closeStream() {
         if (closed) return;
-        closed = true;
 
-        clearInterval(intervalId);
-        clearInterval(heartbeatId);
+        closed = true;
+        clearInterval(timer);
+        clearInterval(heartbeat);
         request.signal.removeEventListener("abort", closeStream);
 
         try {
           controller.close();
         } catch {
-          // The client may already have disconnected.
+          // The connection may already be closed.
         }
       }
 
-      function send(data) {
+      cleanup = closeStream;
+
+      function send(payload) {
         if (closed) return;
 
         try {
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
+            encoder.encode(`data: ${JSON.stringify(payload)}\n\n`),
           );
         } catch {
           closeStream();
         }
       }
 
-      function publishStatus() {
-        const latestOrder = getOrder(id);
+      request.signal.addEventListener(
+        "abort",
+        closeStream,
+        { once: true },
+      );
 
-        if (!latestOrder) {
-          send({ id, error: "Order no longer available." });
+      if (isDemo) {
+        let index = DEMO_STATUSES.indexOf(seed);
+
+        if (seed === "Cancelled") {
+          send({
+            id,
+            status: "Cancelled",
+            updatedAt: new Date().toISOString(),
+            demo: true,
+          });
           closeStream();
           return;
         }
 
-        if (latestOrder.status !== lastStatus) {
-          lastStatus = latestOrder.status;
+        if (index < 0) index = 0;
+
+        function publish() {
+          const status = DEMO_STATUSES[index];
 
           send({
-            id: latestOrder.id,
-            status: latestOrder.status,
-            createdAt: latestOrder.createdAt,
-            updatedAt: latestOrder.updatedAt || null,
+            id,
+            status,
+            updatedAt: new Date().toISOString(),
+            demo: true,
           });
 
-          // Finished orders do not need an open stream.
+          if (status === "Delivered") {
+            closeStream();
+          }
+        }
+
+        // Send the server-seeded status immediately.
+        publish();
+
+        if (!closed) {
+          timer = setInterval(() => {
+            if (index < DEMO_STATUSES.length - 1) {
+              index += 1;
+            }
+
+            publish();
+          }, 1500);
+        }
+      } else {
+        let lastStatus = null;
+
+        function publishActualStatus() {
+          const order = getOrder(id);
+
+          if (!order) {
+            send({
+              id,
+              error: "Order is unavailable on this server instance.",
+            });
+            closeStream();
+            return;
+          }
+
+          if (order.status !== lastStatus) {
+            lastStatus = order.status;
+
+            send({
+              id: order.id,
+              status: order.status,
+              updatedAt: order.updatedAt || null,
+              demo: false,
+            });
+          }
+
           if (
-            ["delivered", "cancelled"].includes(
-              String(latestOrder.status).toLowerCase()
-            )
+            ["Delivered", "Cancelled"].includes(order.status)
           ) {
             closeStream();
           }
         }
+
+        publishActualStatus();
+
+        if (!closed) {
+          timer = setInterval(publishActualStatus, 3000);
+          heartbeat = setInterval(() => {
+            if (closed) return;
+
+            try {
+              controller.enqueue(encoder.encode(": keep-alive\n\n"));
+            } catch {
+              closeStream();
+            }
+          }, 10000);
+        }
       }
+    },
 
-      request.signal.addEventListener("abort", closeStream, { once: true });
-
-      // Send the current status immediately, then check for changes.
-      publishStatus();
-
-      if (!closed) {
-        intervalId = setInterval(publishStatus, 3000);
-
-        // Keep the connection alive even while status is unchanged.
-        heartbeatId = setInterval(() => {
-          if (closed) return;
-
-          try {
-            controller.enqueue(encoder.encode(": keep-alive\n\n"));
-          } catch {
-            closeStream();
-          }
-        }, 20000);
-      }
+    cancel() {
+      cleanup();
     },
   });
 
@@ -123,4 +166,63 @@ export async function GET(request, { params }) {
       "X-Accel-Buffering": "no",
     },
   });
+}
+
+export async function GET(request, { params }) {
+  const session = await getSession();
+
+  if (!session) {
+    return Response.json(
+      { error: "Sign in required." },
+      { status: 401 },
+    );
+  }
+
+  const { id } = await params;
+  const url = new URL(request.url);
+  const order = getOrder(id);
+
+  // Never let demo mode bypass ownership of a real order.
+  if (
+    order &&
+    session.role !== "staff" &&
+    String(order.customerId).toLowerCase() !==
+      String(session.username).toLowerCase()
+  ) {
+    return Response.json(
+      { error: "Order not found." },
+      { status: 404 },
+    );
+  }
+
+  const demoRequested = url.searchParams.get("demo") === "1";
+
+  // Vercel requests are independent of other server instances'
+  // in-memory Maps. Use the server-seeded demo there.
+  const useDemo =
+    demoRequested &&
+    (process.env.VERCEL === "1" || !order);
+
+  if (useDemo) {
+    const requestedSeed = url.searchParams.get("seed");
+    const seed = ALLOWED_STATUSES.includes(requestedSeed)
+      ? requestedSeed
+      : order?.status || "Preparing";
+
+    return createSseResponse(request, String(id), seed, true);
+  }
+
+  if (!order) {
+    return Response.json(
+      { error: "Order not found." },
+      { status: 404 },
+    );
+  }
+
+  return createSseResponse(
+    request,
+    String(id),
+    order.status,
+    false,
+  );
 }
