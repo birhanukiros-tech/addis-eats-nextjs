@@ -1,10 +1,10 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { when, formatRelativeTime } from "@/lib/format";
 
 const terminalStatuses = ["delivered", "cancelled"];
+const RECONNECT_TIMEOUT = 10000;
 
 export default function OrderLiveStatus({ orderId, initialStatus }) {
   const [status, setStatus] = useState(initialStatus || "Unknown");
@@ -12,71 +12,141 @@ export default function OrderLiveStatus({ orderId, initialStatus }) {
   const [updatedAt, setUpdatedAt] = useState(null);
 
   useEffect(() => {
+    let source;
+    let retryTimer;
+    let stopped = false;
+
+    function stopStream(nextConnection) {
+      stopped = true;
+
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+
+      if (source) {
+        source.close();
+      }
+
+      setConnection(nextConnection);
+    }
+
     setStatus(initialStatus || "Unknown");
     setConnection("connecting");
     setUpdatedAt(null);
 
-    if (terminalStatuses.includes(String(initialStatus).toLowerCase())) {
+    if (
+      terminalStatuses.includes(
+        String(initialStatus).toLowerCase()
+      )
+    ) {
       setConnection("closed");
       return;
     }
 
-    const source = new EventSource(
-      `/api/orders/${encodeURIComponent(orderId)}/stream`
-    );
+    try {
+      source = new EventSource(
+        `/api/orders/${encodeURIComponent(orderId)}/stream`
+      );
+    } catch {
+      setConnection("unavailable");
+      return;
+    }
 
     source.onopen = () => {
+      if (stopped) return;
+
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+
       setConnection("live");
     };
 
     source.onmessage = (event) => {
+      if (stopped) return;
+
       try {
         const payload = JSON.parse(event.data);
 
         if (payload.error) {
-          source.close();
-          setConnection("closed");
+          stopStream("unavailable");
           return;
         }
 
-        if (payload.status) {
-          setStatus(payload.status);
-          setUpdatedAt(payload.updatedAt || new Date().toISOString());
+        if (!payload.status) return;
 
-          if (
-            terminalStatuses.includes(String(payload.status).toLowerCase())
-          ) {
-            source.close();
-            setConnection("closed");
-          } else {
-            setConnection("live");
-          }
+        setStatus(payload.status);
+        setUpdatedAt(
+          payload.updatedAt || new Date().toISOString()
+        );
+
+        if (
+          terminalStatuses.includes(
+            String(payload.status).toLowerCase()
+          )
+        ) {
+          stopStream("closed");
+          return;
         }
+
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+          retryTimer = null;
+        }
+
+        setConnection("live");
       } catch {
-        // Ignore malformed messages and keep the connection available.
+        // Ignore malformed messages.
       }
     };
 
-    // EventSource retries automatically; keep the UI honest about that.
     source.onerror = () => {
+      if (stopped) return;
+
       setConnection("reconnecting");
+
+      // EventSource retries automatically.
+      // Stop retrying if the stream remains unavailable.
+      if (!retryTimer) {
+        retryTimer = setTimeout(() => {
+          if (stopped) return;
+          stopStream("unavailable");
+        }, RECONNECT_TIMEOUT);
+      }
     };
 
     return () => {
-      source.close();
+      stopped = true;
+
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
+
+      source?.close();
     };
   }, [orderId, initialStatus]);
 
-  let connectionLabel = "Connecting…";
+  let connectionLabel = "Connecting to live updates…";
 
-  if (connection === "live") connectionLabel = "Live updates connected";
-  if (connection === "reconnecting") connectionLabel = "Reconnecting…";
-  if (connection === "closed") connectionLabel = "Live updates finished";
+  if (connection === "live") {
+    connectionLabel = "Live updates connected";
+  } else if (connection === "reconnecting") {
+    connectionLabel = "Reconnecting…";
+  } else if (connection === "unavailable") {
+    connectionLabel = "Live updates unavailable";
+  } else if (connection === "closed") {
+    connectionLabel = "No further updates needed";
+  }
 
   return (
     <div className="mt-4 rounded-xl bg-[#F8F4EC] p-4">
       <p className="text-sm text-[#666666]">Current status</p>
-      <p className="mt-1 text-xl font-bold text-[#7A263A]">{status}</p>
+
+      <p className="mt-1 text-xl font-bold text-[#7A263A]">
+        {status}
+      </p>
 
       <p
         role="status"
@@ -94,6 +164,14 @@ export default function OrderLiveStatus({ orderId, initialStatus }) {
         />
         {connectionLabel}
       </p>
+
+      {connection === "unavailable" && (
+        <p className="mt-2 text-sm text-[#666666]">
+          Showing the last known order status. Automatic live
+          updates could not connect. Refresh or revisit this
+          page later to try again.
+        </p>
+      )}
 
       {updatedAt && (
         <p className="mt-2 text-sm text-[#666666]">

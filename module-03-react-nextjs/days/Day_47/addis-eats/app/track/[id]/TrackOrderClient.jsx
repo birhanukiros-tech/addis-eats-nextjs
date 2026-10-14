@@ -18,9 +18,19 @@ export default function TrackOrderClient({
   const [loading, setLoading] = useState(!initialOrder);
   const [usingLocalOrder, setUsingLocalOrder] = useState(false);
 
+  // These values are populated only after the browser mounts.
+  // This keeps the server HTML and the browser's first render identical.
+  const [mounted, setMounted] = useState(false);
+  const [relativePlacedAt, setRelativePlacedAt] = useState("");
+
+  // Mark the component as mounted in the browser.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Load the order from browser storage if the server has no copy.
   useEffect(() => {
     function loadOrder() {
-      // Prefer the order found by the server.
       if (initialOrder) {
         setOrder(initialOrder);
         setUsingLocalOrder(false);
@@ -56,7 +66,6 @@ export default function TrackOrderClient({
 
     loadOrder();
 
-    // Keep the display synchronized with local order changes.
     if (!initialOrder) {
       window.addEventListener("storage", loadOrder);
       window.addEventListener("addis-eats-orders-updated", loadOrder);
@@ -70,6 +79,33 @@ export default function TrackOrderClient({
       };
     }
   }, [orderId, username, role, initialOrder]);
+
+  // Calculate relative time only in the browser after hydration.
+  useEffect(() => {
+    if (!mounted || !order?.createdAt) {
+      setRelativePlacedAt("");
+      return;
+    }
+
+    const date = new Date(order.createdAt);
+
+    if (Number.isNaN(date.getTime())) {
+      setRelativePlacedAt("");
+      return;
+    }
+
+    setRelativePlacedAt(formatRelativeTime(date));
+  }, [mounted, order?.createdAt]);
+
+  // Shared ETB formatting after mount.
+  // Before mount, use deterministic text on both server and browser.
+  function formatMoney(value) {
+    const amount = Number(value) || 0;
+
+    return mounted
+      ? etb.format(amount)
+      : `ETB ${Math.round(amount)}`;
+  }
 
   if (loading) {
     return (
@@ -88,11 +124,13 @@ export default function TrackOrderClient({
           <h1 className="text-2xl font-bold text-[#7A263A]">
             Order Not Available in This Browser
           </h1>
+
           <p className="mt-4 text-[#666666]">
             We could not find this order on the server or in this
             browser&apos;s saved order history. Open the same browser
             and profile you used to place the order.
           </p>
+
           <Link
             href="/orders"
             className="mt-6 inline-block rounded-xl bg-[#7A263A] px-6 py-3 font-bold text-white"
@@ -104,7 +142,10 @@ export default function TrackOrderClient({
     );
   }
 
-  const placedAt = order.createdAt ? new Date(order.createdAt) : null;
+  const placedAt = order.createdAt
+    ? new Date(order.createdAt)
+    : null;
+
   const validPlacedAt =
     placedAt && !Number.isNaN(placedAt.getTime());
 
@@ -115,12 +156,14 @@ export default function TrackOrderClient({
           <p className="text-sm font-bold tracking-[0.25em] text-[#D4AF60]">
             ADDIS EATS · DELIVERY TRACKING
           </p>
+
           <h1
             className="mt-3 text-3xl font-bold text-white sm:text-4xl"
             style={{ fontFamily: "Georgia, serif" }}
           >
             Track Your Order
           </h1>
+
           <p className="mt-3 text-[#F1E2E5]">
             Order #{order.id}
           </p>
@@ -138,13 +181,15 @@ export default function TrackOrderClient({
               <h3 className="font-bold text-[#2F2F2F]">
                 Delivery Destination
               </h3>
+
               <p className="mt-1 text-[#666666]">
                 {order.address || "No delivery address recorded."}
               </p>
+
               <p className="mt-2 text-sm text-[#666666]">
-                The courier marker is a demonstration location, not live GPS.
-                The delivery marker is based on address lookup and may be
-                approximate.
+                The courier marker is a demonstration location, not
+                live GPS. The delivery marker is based on address
+                lookup and may be approximate.
               </p>
             </div>
           </div>
@@ -160,13 +205,15 @@ export default function TrackOrderClient({
                   <p className="text-sm text-[#666666]">
                     Saved status in this browser
                   </p>
+
                   <p className="mt-1 text-xl font-bold text-[#7A263A]">
                     {order.status || "Preparing"}
                   </p>
+
                   <p className="mt-3 text-sm text-[#666666]">
                     The server could not find this order for its live
-                    status stream. This screen is using the order saved
-                    by checkout in your browser.
+                    status stream. This screen is using the order
+                    saved by checkout in your browser.
                   </p>
                 </div>
               ) : (
@@ -177,15 +224,21 @@ export default function TrackOrderClient({
               )}
 
               <div className="mt-5 border-t border-[#E8DDD8] pt-4">
-                <p className="text-sm text-[#666666]">Order placed</p>
+                <p className="text-sm text-[#666666]">
+                  Order placed
+                </p>
+
                 <p className="mt-1 font-semibold text-[#2F2F2F]">
                   {validPlacedAt
-                    ? when.format(placedAt)
+                    ? mounted
+                      ? when.format(placedAt)
+                      : "Order date saved"
                     : "Date unavailable"}
                 </p>
-                {validPlacedAt && (
+
+                {validPlacedAt && relativePlacedAt && (
                   <p className="mt-2 text-sm text-[#666666]">
-                    {formatRelativeTime(placedAt)}
+                    {relativePlacedAt}
                   </p>
                 )}
               </div>
@@ -205,8 +258,9 @@ export default function TrackOrderClient({
                     <span className="text-[#666666]">
                       {item.name} × {item.quantity}
                     </span>
+
                     <span className="whitespace-nowrap font-semibold text-[#2F2F2F]">
-                      {etb.format(
+                      {formatMoney(
                         Number(item.price) * Number(item.quantity),
                       )}
                     </span>
@@ -216,23 +270,32 @@ export default function TrackOrderClient({
 
               <div className="mt-5 space-y-3 border-t border-[#E8DDD8] pt-4 text-sm">
                 <div className="flex justify-between gap-4">
-                  <span className="text-[#666666]">Subtotal</span>
+                  <span className="text-[#666666]">
+                    Subtotal
+                  </span>
+
                   <span className="font-semibold">
-                    {etb.format(Number(order.subtotal) || 0)}
+                    {formatMoney(order.subtotal)}
                   </span>
                 </div>
+
                 <div className="flex justify-between gap-4">
-                  <span className="text-[#666666]">Delivery Fee</span>
+                  <span className="text-[#666666]">
+                    Delivery Fee
+                  </span>
+
                   <span className="font-semibold">
-                    {etb.format(Number(order.deliveryFee) || 0)}
+                    {formatMoney(order.deliveryFee)}
                   </span>
                 </div>
+
                 <div className="flex justify-between gap-4 border-t border-[#E8DDD8] pt-3">
                   <span className="font-bold text-[#2F2F2F]">
                     Total
                   </span>
+
                   <span className="text-lg font-bold text-[#7A263A]">
-                    {etb.format(Number(order.total) || 0)}
+                    {formatMoney(order.total)}
                   </span>
                 </div>
               </div>
