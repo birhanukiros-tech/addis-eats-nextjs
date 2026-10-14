@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -13,7 +14,14 @@ function Header({ customer }) {
   const [isPending, startTransition] = useTransition();
   const [hasMounted, setHasMounted] = useState(false);
 
-  const { cartCount, cartOpen, closeCartDrawer } = useCart();
+  const {
+    cartCount,
+    cartOpen,
+    closeCartDrawer,
+    favorites,
+    theme,
+    toggleTheme,
+  } = useCart();
 
   useEffect(() => {
     setHasMounted(true);
@@ -26,19 +34,28 @@ function Header({ customer }) {
     });
   }
 
-  // Shared accessible styles for navigation links.
   const linkClass =
     "inline-flex min-h-[44px] items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold text-[#2F2F2F] transition hover:text-[#7A263A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A263A] sm:text-base";
 
-  // Shared styles for action buttons and emphasized links.
   const actionClass =
     "inline-flex min-h-[44px] items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A263A] sm:px-4 sm:text-base";
+
+  const themeLabel = !hasMounted
+    ? "Change color theme"
+    : theme === "dark"
+      ? "Switch to light theme"
+      : "Switch to dark theme";
+
+  const themeText = !hasMounted
+    ? "Theme"
+    : theme === "dark"
+      ? "☀️ Light"
+      : "🌙 Dark";
 
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-[#E5D8C7] bg-[#F2E8D5]">
         <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-3 px-3 py-3 sm:px-6 sm:py-4">
-          {/* Logo */}
           <Link
             href="/"
             aria-label="Addis Eats home"
@@ -61,7 +78,6 @@ function Header({ customer }) {
             </span>
           </Link>
 
-          {/* Main Navigation */}
           <nav
             aria-label="Main navigation"
             className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-1 gap-y-1 sm:gap-x-3 lg:w-auto lg:flex-nowrap lg:justify-end lg:gap-5 xl:gap-7"
@@ -74,9 +90,16 @@ function Header({ customer }) {
               Menu
             </Link>
 
+            <Link href="/favorites" className={linkClass}>
+              Favorites
+              {hasMounted && favorites.length > 0
+                ? ` (${favorites.length})`
+                : ""}
+            </Link>
+
             <Link href="/cart" className={linkClass}>
               Cart
-              {hasMounted && cartCount > 0 && ` (${cartCount})`}
+              {hasMounted && cartCount > 0 ? ` (${cartCount})` : ""}
             </Link>
 
             <Link href="/orders" className={linkClass}>
@@ -87,7 +110,15 @@ function Header({ customer }) {
               Checkout
             </Link>
 
-            {/* Admin */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={themeLabel}
+              className={`${actionClass} border border-[#7A263A] text-[#7A263A] hover:bg-[#7A263A] hover:text-white`}
+            >
+              {themeText}
+            </button>
+
             <Link
               href="/kitchen"
               className={`${actionClass} bg-[#7A263A] font-bold text-white hover:bg-[#A64B5D]`}
@@ -95,7 +126,6 @@ function Header({ customer }) {
               Admin
             </Link>
 
-            {/* Authentication */}
             {customer ? (
               <button
                 type="button"
@@ -117,7 +147,6 @@ function Header({ customer }) {
         </div>
       </header>
 
-      {/* Existing Cart Drawer */}
       <CartDrawer
         isOpen={cartOpen}
         onClose={closeCartDrawer}

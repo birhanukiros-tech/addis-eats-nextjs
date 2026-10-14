@@ -11,10 +11,21 @@ function Providers({ children, customer }) {
     ? `addis-eats-cart-${customerId}`
     : "addis-eats-cart-guest";
 
+  const favoritesKey = customerId
+    ? `addis-eats-favorites-${customerId}`
+    : "addis-eats-favorites-guest";
+
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [loadedKey, setLoadedKey] = useState(null);
 
+  const [favorites, setFavorites] = useState([]);
+  const [loadedFavoritesKey, setLoadedFavoritesKey] = useState(null);
+
+  const [theme, setTheme] = useState("light");
+  const [themeLoaded, setThemeLoaded] = useState(false);
+
+  // Load the current customer's cart.
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem(cartKey);
@@ -28,15 +39,90 @@ function Providers({ children, customer }) {
     setLoadedKey(cartKey);
   }, [cartKey]);
 
+  // Save the cart only after the correct cart has loaded.
   useEffect(() => {
-    // Don't save the previous customer's cart under the new customer's key.
     if (loadedKey !== cartKey) return;
 
-    localStorage.setItem(cartKey, JSON.stringify(cart));
+    try {
+      localStorage.setItem(cartKey, JSON.stringify(cart));
+    } catch {
+      // Keep the app working if browser storage is unavailable.
+    }
   }, [cart, cartKey, loadedKey]);
 
-  // Hide the previous customer's cart while the new cart loads.
   const visibleCart = loadedKey === cartKey ? cart : [];
+
+  // Load favorites for the current customer or guest.
+  useEffect(() => {
+    try {
+      const savedFavorites = localStorage.getItem(favoritesKey);
+      const parsedFavorites = savedFavorites
+        ? JSON.parse(savedFavorites)
+        : [];
+
+      setFavorites(Array.isArray(parsedFavorites) ? parsedFavorites : []);
+    } catch {
+      setFavorites([]);
+    }
+
+    setLoadedFavoritesKey(favoritesKey);
+  }, [favoritesKey]);
+
+  // Save favorites only after the correct list has loaded.
+  useEffect(() => {
+    if (loadedFavoritesKey !== favoritesKey) return;
+
+    try {
+      localStorage.setItem(favoritesKey, JSON.stringify(favorites));
+    } catch {
+      // Keep the app working if browser storage is unavailable.
+    }
+  }, [favorites, favoritesKey, loadedFavoritesKey]);
+
+  const visibleFavorites =
+    loadedFavoritesKey === favoritesKey ? favorites : [];
+
+  function toggleFavorite(dish) {
+    setFavorites((currentFavorites) =>
+      currentFavorites.some((item) => item.id === dish.id)
+        ? currentFavorites.filter((item) => item.id !== dish.id)
+        : [...currentFavorites, dish],
+    );
+  }
+
+  // Load the saved theme once in the browser.
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem("addis-eats-theme");
+
+      if (savedTheme === "dark" || savedTheme === "light") {
+        setTheme(savedTheme);
+      }
+    } catch {
+      // Use light theme if browser storage is unavailable.
+    }
+
+    setThemeLoaded(true);
+  }, []);
+
+  // Apply and save the selected theme.
+  useEffect(() => {
+    if (!themeLoaded) return;
+
+    document.documentElement.dataset.theme = theme;
+
+    try {
+      localStorage.setItem("addis-eats-theme", theme);
+    } catch {
+      // The selected theme still works for this session.
+    }
+  }, [theme, themeLoaded]);
+
+  function toggleTheme() {
+    setTheme((currentTheme) =>
+      currentTheme === "light" ? "dark" : "light",
+    );
+  }
 
   function addToCart(dish) {
     setCart((currentCart) => {
@@ -44,7 +130,9 @@ function Providers({ children, customer }) {
 
       if (existingItem) {
         return currentCart.map((item) =>
-          item.id === dish.id ? { ...item, quantity: item.quantity + 1 } : item,
+          item.id === dish.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item,
         );
       }
 
@@ -55,7 +143,9 @@ function Providers({ children, customer }) {
   }
 
   function removeFromCart(id) {
-    setCart((currentCart) => currentCart.filter((item) => item.id !== id));
+    setCart((currentCart) =>
+      currentCart.filter((item) => item.id !== id),
+    );
   }
 
   function increaseQuantity(id) {
@@ -114,6 +204,10 @@ function Providers({ children, customer }) {
         cartOpen,
         openCartDrawer,
         closeCartDrawer,
+        favorites: visibleFavorites,
+        toggleFavorite,
+        theme,
+        toggleTheme,
       }}
     >
       {children}

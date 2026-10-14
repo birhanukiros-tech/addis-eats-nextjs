@@ -583,3 +583,102 @@ p {
     padding: 12px;
   }
 }
+
+
+/* =========================================
+   ADDIS EATS — PROJECT-WIDE DARK MODE
+========================================= */
+
+html[data-theme="dark"] body {
+  background-color: #151b18 !important;
+  color: #edf3ee !important;
+  color-scheme: dark;
+}
+
+/* Main page surfaces */
+html[data-theme="dark"] main,
+html[data-theme="dark"] section,
+html[data-theme="dark"] article,
+html[data-theme="dark"] aside,
+html[data-theme="dark"] .menu-layout,
+html[data-theme="dark"] .menu-content {
+  background-color: #151b18;
+  color: #edf3ee;
+}
+
+/* Common light backgrounds */
+html[data-theme="dark"] [class~="bg-white"],
+html[data-theme="dark"] [class~="bg-gray-50"],
+html[data-theme="dark"] [class~="bg-gray-100"],
+html[data-theme="dark"] [class~="bg-stone-50"],
+html[data-theme="dark"] [class~="bg-amber-50"],
+html[data-theme="dark"] [class~="bg-[#F2E8D5]"],
+html[data-theme="dark"] [class~="bg-[#f7f3ea]"] {
+  background-color: #202923 !important;
+}
+
+/* Common text colors */
+html[data-theme="dark"] [class~="text-[#2F2F2F]"],
+html[data-theme="dark"] [class~="text-[#26352f]"],
+html[data-theme="dark"] [class~="text-[#173d32]"],
+html[data-theme="dark"] [class~="text-gray-900"],
+html[data-theme="dark"] [class~="text-gray-800"],
+html[data-theme="dark"] [class~="text-gray-700"],
+html[data-theme="dark"] [class~="text-black"] {
+  color: #edf3ee !important;
+}
+
+/* Cards, panels, and borders */
+html[data-theme="dark"] .dish-card,
+html[data-theme="dark"] .skelton-card,
+html[data-theme="dark"] [class*="rounded"][class*="border"],
+html[data-theme="dark"] [class*="shadow"] {
+  border-color: #39483e;
+}
+
+html[data-theme="dark"] .dish-card,
+html[data-theme="dark"] .skelton-card {
+  background-color: #202923;
+}
+
+html[data-theme="dark"] .dish-description,
+html[data-theme="dark"] .dish-detail p {
+  color: #c0ccc4;
+}
+
+/* Forms */
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+  background-color: #202923 !important;
+  color: #edf3ee !important;
+  border-color: #536258 !important;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: #b4c0b8;
+}
+
+/* Dialogs, drawers, and popovers */
+html[data-theme="dark"] [role="dialog"],
+html[data-theme="dark"] [role="alertdialog"],
+html[data-theme="dark"] [data-radix-popper-content-wrapper] {
+  color: #edf3ee;
+}
+
+/* Footer and navigation */
+html[data-theme="dark"] header,
+html[data-theme="dark"] footer {
+  background-color: #202923 !important;
+  border-color: #39483e !important;
+}
+
+/* Keep images natural and buttons readable */
+html[data-theme="dark"] img {
+  opacity: 1;
+}
+
+html[data-theme="dark"] button:disabled {
+  opacity: 0.6;
+}
