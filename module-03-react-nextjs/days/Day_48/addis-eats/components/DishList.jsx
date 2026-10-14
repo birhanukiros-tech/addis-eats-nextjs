@@ -65,7 +65,7 @@ function DishList({ dishes }) {
             <div className="grid grid-cols-2 gap-3">
               <Link
                 href={`/menu/${createDishSlug(dish.name)}`}
-                className="rounded-xl border-2 border-[#7A263A] px-3 py-3 text-center text-sm font-bold text-[#7A263A] transition hover:bg-[#F1E2E5]"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-[#7A263A] px-3 py-3 text-center text-sm font-bold text-[#7A263A] transition hover:bg-[#F1E2E5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A263A]"
               >
                 View Details
               </Link>
@@ -73,7 +73,7 @@ function DishList({ dishes }) {
               <button
                 type="button"
                 onClick={() => addToCart(dish)}
-                className="rounded-xl bg-[#7A263A] px-3 py-3 text-sm font-bold text-white transition hover:bg-[#A64B5D]"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#7A263A] px-3 py-3 text-sm font-bold text-white transition hover:bg-[#A64B5D] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A263A]"
               >
                 Add to Cart
               </button>
