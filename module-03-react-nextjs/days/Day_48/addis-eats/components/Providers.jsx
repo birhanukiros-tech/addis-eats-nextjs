@@ -40,15 +40,11 @@ function Providers({ children, customer }) {
 
   function addToCart(dish) {
     setCart((currentCart) => {
-      const existingItem = currentCart.find(
-        (item) => item.id === dish.id
-      );
+      const existingItem = currentCart.find((item) => item.id === dish.id);
 
       if (existingItem) {
         return currentCart.map((item) =>
-          item.id === dish.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+          item.id === dish.id ? { ...item, quantity: item.quantity + 1 } : item,
         );
       }
 
@@ -59,18 +55,14 @@ function Providers({ children, customer }) {
   }
 
   function removeFromCart(id) {
-    setCart((currentCart) =>
-      currentCart.filter((item) => item.id !== id)
-    );
+    setCart((currentCart) => currentCart.filter((item) => item.id !== id));
   }
 
   function increaseQuantity(id) {
     setCart((currentCart) =>
       currentCart.map((item) =>
-        item.id === id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      )
+        item.id === id ? { ...item, quantity: item.quantity + 1 } : item,
+      ),
     );
   }
 
@@ -78,11 +70,9 @@ function Providers({ children, customer }) {
     setCart((currentCart) =>
       currentCart
         .map((item) =>
-          item.id === id
-            ? { ...item, quantity: item.quantity - 1 }
-            : item
+          item.id === id ? { ...item, quantity: item.quantity - 1 } : item,
         )
-        .filter((item) => item.quantity > 0)
+        .filter((item) => item.quantity > 0),
     );
   }
 
@@ -96,17 +86,23 @@ function Providers({ children, customer }) {
 
   const cartTotal = visibleCart.reduce(
     (total, item) => total + item.price * item.quantity,
-    0
+    0,
   );
 
   const cartCount = visibleCart.reduce(
     (total, item) => total + item.quantity,
-    0
+    0,
   );
+
+  function clearCart() {
+    setCart([]);
+    setCartOpen(false);
+  }
 
   return (
     <CartContext.Provider
       value={{
+        customerId,
         cart: visibleCart,
         cartTotal,
         cartCount,
@@ -114,6 +110,7 @@ function Providers({ children, customer }) {
         removeFromCart,
         increaseQuantity,
         decreaseQuantity,
+        clearCart,
         cartOpen,
         openCartDrawer,
         closeCartDrawer,
