@@ -2,22 +2,22 @@
 
 ## Overview
 
-Addis Eats uses Next.js server components, server actions, API routes, SWR, and browser storage to manage menu and order information.
+Addis Eats uses Next.js Server Components, Server Actions, API routes, SWR, and browser storage to support menu browsing and order-related features.
 
 The application includes:
 
 - Menu and dish-detail retrieval.
-- Customer authentication and protected pages.
-- Order creation through a server action.
-- Customer order history displayed from browser `localStorage`.
 - Debounced menu search and URL-based pagination.
+- Order creation through a Server Action.
+- Customer order history displayed from browser `localStorage`.
 - API routes for dishes and orders.
+- Authentication and protected customer and staff pages.
 
 ## Menu Data
 
 The menu displays dish names, descriptions, prices, categories, and images.
 
-The menu page supplies initial dish data. The `FilterShall` component uses SWR to retrieve paginated dish results and search results from the API.
+The menu page provides initial dish data. The `FilterShall` component uses SWR to retrieve paginated dish results and search results from the API.
 
 Relevant routes:
 
@@ -26,61 +26,56 @@ Relevant routes:
 - `/api/dishes`
 - `/api/dishes/[id]`
 
-Menu search is debounced by 300 milliseconds to reduce unnecessary requests while typing.
+Search uses a 300-millisecond debounce to reduce unnecessary requests while the user types.
 
-Menu pagination is reflected in the URL using the `page` query parameter.
+Pagination is reflected in the URL through the `page` query parameter.
 
 ## Order Creation and Display
 
-Checkout uses the `placeOrder` server action to submit an order. After a successful response, the checkout client saves the returned order in browser `localStorage` under the key `addis-eats-orders`.
+Checkout submits an order through the `placeOrder` Server Action. After a successful response, the client saves the returned order in browser `localStorage` under the key `addis-eats-orders`.
 
-The Orders page checks the authenticated session before displaying the customer's order history.
+The Orders page checks the authenticated session before displaying order information. The `LiveOrders` component reads locally stored orders and filters the displayed list by the signed-in customer's username.
 
-The `LiveOrders` component reads orders from browser storage and filters the displayed list by the signed-in customer's username.
-
-This implementation is intended for a frontend-focused demonstration. Browser storage is controlled by the user and is not a secure source of order ownership.
+This behavior is suitable for demonstrating the frontend flow, but browser storage is controlled by the user and cannot establish secure order ownership.
 
 ## Order API
 
-The application includes:
+The project includes these API routes:
 
 - `/api/orders`
 - `/api/orders/[id]`
 
-These routes remain part of the project. However, the current Orders interface reads from `localStorage` rather than polling `/api/orders`.
+The presence of these routes does not mean that every order operation uses them. The current Orders interface reads from `localStorage` rather than polling `/api/orders`.
 
-The current cancellation button updates the order status in browser storage. It does not call the server-side cancellation action.
+The cancellation button currently updates the order status in browser storage rather than calling the server-side cancellation action.
 
-## Storage Limitations
+## Storage and Limitations
 
-The current order-history interface uses browser `localStorage`.
+The current implementation uses browser `localStorage` for the displayed order history.
 
-Consequences include:
-
-- Orders persist in the same browser on the same device.
+- Orders remain available in the same browser and device while the stored data remains intact.
 - Orders do not automatically synchronize across browsers or devices.
-- Browser storage can be inspected or modified by the user.
-- The displayed cancellation status is a local change, not a server-confirmed update.
+- Users can inspect or modify browser storage.
+- A locally displayed cancellation is not necessarily a server-confirmed update.
+- Server-side in-memory storage is not reliable persistent storage across server restarts or multiple Vercel instances.
 
-The server-side order store also uses in-memory storage, which is not reliable shared persistence across Vercel instances or server restarts.
-
-A production implementation requiring shared order history must use persistent server-side storage, authenticated ownership checks, and server-confirmed order updates.
+For production use, order records should be stored in a persistent server-side database. Every read and mutation must enforce authenticated ownership on the server, and order-status changes should be confirmed by the server.
 
 ## Verification
 
-The following frontend behaviors were tested locally:
+The following frontend behaviors were reported as tested locally:
 
-1. The menu and dish-detail routes load.
+1. Menu and dish-detail routes load.
 2. Menu search and pagination work.
 3. Checkout successfully returns an order.
 4. The order appears in the Orders page for the corresponding customer in the same browser.
 5. Cancelling an order changes its locally displayed status.
-6. The customer and staff authentication flows remain separate from the frontend order display.
+6. Customer and staff authentication flows remain separate from the frontend order display.
 
-These tests demonstrate the current frontend behavior. They do not establish that server-side order ownership, live order polling, or cross-device persistence is fully implemented.
+These checks demonstrate the reported frontend behavior. They do not establish complete server-side order ownership, active live polling in the Orders interface, or cross-device persistence.
 
 ## Related Documentation
 
-- `README.md` — project overview and setup.
-- `AUTH.md` — authentication and authorization.
+- `README.md` — project overview, setup, and deployment.
+- `AUTH.md` — authentication, authorization, and security limitations.
 - `PERF.md` — performance measurements and optimization evidence.

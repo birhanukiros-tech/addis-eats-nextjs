@@ -4,23 +4,22 @@
 
 Addis Eats uses server-side authentication and authorization to protect customer and staff features.
 
-The authentication system supports:
+The application includes:
 
 - Customer registration, sign-in, and sign-out.
 - Google sign-in integration.
 - Signed session cookies.
-- Protected customer pages and server actions.
-- Customer-specific order queries.
-- Order ownership checks before cancellation.
+- Protected customer routes and server actions.
+- Order ownership checks.
 - Staff-only access to the kitchen area.
 
 ## Session Security
 
-The application uses a signed session token stored in an HTTP-only cookie. Session helpers validate the token and identify the current customer.
+The application uses a signed session token stored in an HTTP-only cookie. Session helpers validate the token and identify the current user.
 
-Cookie settings should be reviewed in the authentication implementation to confirm the actual `httpOnly`, `secure`, `sameSite`, and expiration values. Production deployment must use HTTPS and an appropriately configured session secret.
+Review the authentication implementation to confirm the cookie's `httpOnly`, `secure`, `sameSite`, and expiration settings. Production deployment should use HTTPS and a strong session secret.
 
-Required secrets and authentication configuration belong in `.env.local` for local development or the deployment platform's environment-variable settings. Never commit secrets to Git.
+Keep credentials and secrets in `.env.local` locally or in the deployment platform's environment settings. Never commit secrets to Git.
 
 ## Protected Routes
 
@@ -29,57 +28,55 @@ The following customer routes require authentication:
 - `/checkout`
 - `/orders`
 
-Unauthenticated users are redirected to the login page. The `next` parameter allows users to return to an intended internal destination after signing in.
+Unauthenticated users are redirected to login. The `next` parameter supports returning users to an intended internal destination after signing in.
 
-Unsafe external destinations, protocol-relative URLs, and staff-only destinations are rejected by the login redirect logic.
+The login redirect logic is designed to reject unsafe external destinations, protocol-relative URLs, and staff-only destinations.
 
-The `/kitchen` route is reserved for staff and checks the authenticated user's role server-side.
+The `/kitchen` route is reserved for staff and must verify the authenticated user's role server-side.
 
+## Order Handling and Ownership
 
-## Order Storage and Ownership
+The `placeOrder` server action is documented as requiring an authenticated customer, validating submitted customer details, retrieving dish information, and calculating totals on the server.
 
-The `placeOrder` server action requires a signed-in customer, validates the submitted customer details, retrieves dish information, and calculates the order totals on the server.
+The order's customer ID should come from the authenticated session, not from an untrusted customer ID submitted by the browser.
 
-The server assigns the order's customer ID from the authenticated session rather than trusting a customer ID submitted by the browser.
+After a successful order, the checkout client stores the returned order in browser `localStorage` under `addis-eats-orders`.
 
-After a successful order, the checkout client stores the returned order in browser `localStorage` under the key `addis-eats-orders`.
+The Orders page displays locally stored orders filtered by the signed-in customer's username. This filtering is a frontend display feature, not a security boundary: users can inspect or modify browser storage.
 
-The Orders page requires authentication. Its `LiveOrders` component reads the locally stored orders and filters the displayed list using the signed-in customer's username.
+The current cancellation interface updates cancellation status in localStorage rather than calling the `cancelOrder` server action. Although that server action includes an ownership check, the client-side cancellation flow does not currently enforce ownership through that server action.
 
-The current Orders interface also updates cancellation status in `localStorage` on the client. Although the `cancelOrder` server action contains an ownership check, the current client-side cancellation button does not call that server action.
-
-**Important limitation:** Filtering orders by username in browser storage is a frontend display feature, not a security boundary. Browser storage can be inspected or modified by the user. This implementation is for a frontend-focused demo and does not provide secure, shared order history across devices.
-
+**Important limitation:** Browser-local order history is not secure, shared server-side order storage. It is not automatically synchronized across devices.
 
 ## Staff Authorization
 
-Staff access is controlled by the authenticated user's role. The `/kitchen` route performs a server-side role check rather than relying only on whether staff controls are visible in the UI.
+The `/kitchen` route uses a server-side role check. Hiding staff controls in the interface alone is not sufficient authorization.
 
-Customer accounts must not be able to access staff-only features.
+Customer accounts must not be able to access staff-only functionality.
 
-## Verification Performed
+## Verification Evidence
 
-The following checks were performed locally:
+The following checks were reported as performed locally:
 
 1. Signed-out access to protected customer routes redirects to login.
 2. Signed-in customers can access checkout.
-3. Customer order history is scoped to the authenticated customer.
+3. Customer order history is filtered for the signed-in customer.
 4. The orders API returned an empty data list for a customer with no orders.
-5. Live order polling did not reveal another customer's order.
+5. Live order polling was checked for cross-customer data exposure.
 6. Unsafe external login redirects fell back to the home page.
-7. The cancellation action checks order ownership before updating an order.
+7. The cancellation action's ownership check was reviewed in code.
 8. Customer access to the staff-only kitchen route was checked.
 
-The cancellation ownership guard was reviewed in code. A direct attempt to cancel another customer's hidden order was not confirmed as an executed test.
+**Testing limitation:** A direct attempt to cancel another customer's hidden order was not confirmed as an executed test. Do not present this attack as a successfully blocked live test without running it.
 
 ## Demo Storage Limitations
 
-Some demo accounts and orders are stored in server memory. This means that data may be lost when the server restarts, and the current in-memory implementation is not suitable for reliable multi-instance production storage.
+Some demo accounts or orders may use server memory or browser localStorage, depending on the feature. In-memory data can be lost when the server restarts and may not be shared reliably across multiple server instances.
 
-Before production use, persistent database storage, robust session lifecycle management, rate limiting, and appropriate security monitoring should be reviewed.
+Before production use, implement or verify persistent server-side order storage, enforce authorization on every order mutation, review session lifecycle management, and consider rate limiting and security monitoring.
 
 ## Summary
 
-Authentication establishes the current user through a server-validated session. Authorization checks whether that user may access a route or modify a resource.
+Authentication identifies the current user through a validated session. Authorization determines which routes and resources that user may access.
 
-Addis Eats applies these checks to customer pages, order operations, API handlers, and staff-only access.
+Addis Eats includes protected customer and staff features, but client-side order storage and cancellation behavior have limitations that should be addressed before treating the order system as production-ready.

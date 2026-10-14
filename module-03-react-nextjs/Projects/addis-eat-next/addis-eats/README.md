@@ -1,21 +1,21 @@
+# Addis Eats — Ethiopian Food Ordering
 
-# Addis Eats — Day 48 Accessibility & Production Readiness
+Addis Eats is an Ethiopian food-ordering web application built with Next.js. Customers can browse dishes, manage favorites and their cart, authenticate, place orders, and view order information. Staff can access a protected kitchen area.
 
-Addis Eats is an Ethiopian food-ordering web application built with Next.js. Customers can browse dishes, manage their cart, sign in, place orders, and view their order information. Staff can access a protected kitchen area to manage dishes and orders.
+**Live application:** https://addis-eats-nextjs-o13s.vercel.app/
 
 ## Features
 
-- Browse dishes and view dish details.
-- Responsive menu with optimized images.
-- Customer-specific shopping carts stored in browser localStorage.
-- Customer registration, sign-in, sign-out, and optional Google sign-in.
-- Checkout form with validation and duplicate-submission prevention.
-- Order records saved to browser localStorage by the Day 48 checkout flow.
-- Cart drawer with keyboard navigation and Escape-to-close behavior.
-- Accessible menu, cart, checkout, and header controls.
-- Staff-only kitchen interface.
-- Dish and order management.
-- SEO metadata, robots rules, and XML sitemap.
+- Browse the menu and view individual dish details.
+- Search and filter dishes.
+- Add dishes to the cart and manage favorites.
+- Switch between light and dark themes.
+- Sign up, sign in, and sign out.
+- Validate checkout information and place orders.
+- View order information and track order status.
+- Access protected customer and staff pages.
+- Manage dishes and orders through the kitchen interface.
+- Provide page metadata, robots rules, and an XML sitemap.
 
 ## Tech Stack
 
@@ -23,8 +23,8 @@ Addis Eats is an Ethiopian food-ordering web application built with Next.js. Cus
 - React
 - JavaScript
 - Tailwind CSS
-- React Server Actions for authentication-related operations
-- Browser localStorage for cart and Day 48 checkout order records
+- API routes and server-side functionality
+- Browser localStorage for supported client-side state
 
 ## Getting Started
 
@@ -36,9 +36,9 @@ Addis Eats is an Ethiopian food-ordering web application built with Next.js. Cus
 
 ### Installation
 
-From the cloned repository, open the Day 48 project directory:
+Clone the repository and open the project directory:
 
-`module-03-react-nextjs/days/Day_48/addis-eats`
+`module-03-react-nextjs/Projects/addis-eat-next/addis-eats`
 
 Install dependencies:
 
@@ -46,9 +46,9 @@ Install dependencies:
 npm install
 ```
 
-Create `.env.local` using the required values described in `.env.example`. Use valid password hashes, a unique session secret, and a Google OAuth client ID if Google sign-in is enabled.
+Create `.env.local` using the environment-variable names documented in `.env.example` or the project's authentication documentation. Use valid credentials and secrets for your local environment.
 
-Do not commit `.env.local` or expose real secrets.
+**Never commit `.env.local` or expose private secrets.**
 
 Start the development server:
 
@@ -56,53 +56,45 @@ Start the development server:
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000 in your browser.
 
-## Verification
+## Production Verification
 
-Run a production build:
+Build the application:
 
 ```bash
 npm run build
 ```
 
-Start the production build locally:
+Run the production build locally:
 
 ```bash
 npm run start
 ```
 
-Test the application at http://localhost:3000.
+Then test the application at http://localhost:3000.
 
-### Accessibility checks
+Verify authentication, customer and staff access, menu browsing, cart behavior, checkout, order information, responsive layouts, and SEO routes.
 
-- Navigate through links and buttons using Tab and Shift + Tab.
-- Activate buttons and links using Enter or Space where appropriate.
-- Verify visible keyboard focus indicators.
-- Check cart-drawer Escape behavior and focus restoration.
-- Check checkout validation and duplicate-submit prevention.
-- Verify that controls remain usable at narrow mobile widths.
+## Data and Limitations
 
-## Data and Demo Limitations
+Addis Eats uses client-side state and server-side functionality for different parts of the application. The exact storage and persistence behavior depends on the feature and implementation.
 
-The Day 48 checkout flow saves new order records in browser localStorage under `addis-eats-orders`. Cart data is stored under customer-specific or guest cart keys.
+Browser localStorage is specific to a browser and device. Data stored there is not automatically synchronized across different devices.
 
-Browser-local order records are not automatically shared across different browsers or devices. Clearing browser storage may remove these records.
-
-Authentication and session handling remain in the existing application. Server-side order synchronization and SSE behavior require separate verification and are deferred until after Days 48, 49, and 50.
+Refer to `DATA.md` for the documented data sources, storage behavior, and limitations.
 
 ## Deployment
 
 **Live URL:** https://addis-eats-nextjs-o13s.vercel.app/
 
-The Day 48 version must be deployed to the correct Vercel project root before this URL represents the Day 48 release.
+The application is deployed on Vercel. The configured project root and environment variables must match the current project.
 
-Configure the required environment variables in the appropriate Vercel environments. Never place private secrets in `NEXT_PUBLIC_` variables.
-
-After deployment, verify the login flow, menu, cart, checkout, order storage, staff access, SEO routes, and mobile usability.
+After deployment, verify the critical customer and staff flows and check that metadata, sitemap, and social previews work as expected.
 
 ## Documentation
 
-- `AUTH.md` — authentication and access control.
-- `DATA.md` — data sources and application behavior.
-- `PERF.md` — performance measurements and optimization notes.
+- `AUTH.md` — authentication, authorization, and security verification.
+- `DATA.md` — data sources, fetching, storage, and application behavior.
+- `PERF.md` — performance measurements and optimization decisions.
+- `FUTURE.md` — deferred features and planned improvements, if included.
