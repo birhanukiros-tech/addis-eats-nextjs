@@ -1,23 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { logout } from "@/app/actions";
 import { useCart } from "./Providers";
 import CartDrawer from "./CartDrawer";
-import Image from "next/image";
 
 function Header({ customer }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-
   const [hasMounted, setHasMounted] = useState(false);
+
+  const { cartCount, cartOpen, closeCartDrawer } = useCart();
 
   useEffect(() => {
     setHasMounted(true);
   }, []);
-  const { cartCount, cartOpen, closeCartDrawer } = useCart();
 
   function handleLogout() {
     startTransition(async () => {
@@ -26,8 +26,13 @@ function Header({ customer }) {
     });
   }
 
+  // Shared accessible styles for navigation links.
   const linkClass =
-    "whitespace-nowrap rounded-lg px-2 py-2 text-sm font-semibold text-[#2F2F2F] transition hover:text-[#7A263A] sm:px-3 sm:text-base lg:px-0 lg:py-0";
+    "inline-flex min-h-[44px] items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold text-[#2F2F2F] transition hover:text-[#7A263A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A263A] sm:text-base";
+
+  // Shared styles for action buttons and emphasized links.
+  const actionClass =
+    "inline-flex min-h-[44px] items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A263A] sm:px-4 sm:text-base";
 
   return (
     <>
@@ -36,11 +41,12 @@ function Header({ customer }) {
           {/* Logo */}
           <Link
             href="/"
-            className="flex shrink-0 items-center gap-2 whitespace-nowrap sm:gap-3"
+            aria-label="Addis Eats home"
+            className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-lg whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A263A] sm:gap-3"
           >
             <Image
               src="/logo.png"
-              alt="Addis Eats logo"
+              alt=""
               width={48}
               height={48}
               priority
@@ -55,8 +61,11 @@ function Header({ customer }) {
             </span>
           </Link>
 
-          {/* Navigation */}
-          <nav className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-1 gap-y-1 sm:gap-x-3 lg:w-auto lg:flex-nowrap lg:justify-end lg:gap-5 xl:gap-7">
+          {/* Main Navigation */}
+          <nav
+            aria-label="Main navigation"
+            className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-1 gap-y-1 sm:gap-x-3 lg:w-auto lg:flex-nowrap lg:justify-end lg:gap-5 xl:gap-7"
+          >
             <Link href="/" className={linkClass}>
               Home
             </Link>
@@ -66,7 +75,8 @@ function Header({ customer }) {
             </Link>
 
             <Link href="/cart" className={linkClass}>
-              Cart {hasMounted && cartCount > 0 && `(${cartCount})`}
+              Cart
+              {hasMounted && cartCount > 0 && ` (${cartCount})`}
             </Link>
 
             <Link href="/orders" className={linkClass}>
@@ -77,27 +87,28 @@ function Header({ customer }) {
               Checkout
             </Link>
 
-            {/* Admin is visible before and after sign-in */}
+            {/* Admin */}
             <Link
               href="/kitchen"
-              className="whitespace-nowrap rounded-lg bg-[#7A263A] px-3 py-2 text-sm font-bold text-white transition hover:bg-[#A64B5D] sm:px-4 sm:text-base"
+              className={`${actionClass} bg-[#7A263A] font-bold text-white hover:bg-[#A64B5D]`}
             >
               Admin
             </Link>
 
+            {/* Authentication */}
             {customer ? (
               <button
                 type="button"
                 onClick={handleLogout}
                 disabled={isPending}
-                className="whitespace-nowrap rounded-lg border border-[#7A263A] px-3 py-2 text-sm font-semibold text-[#7A263A] transition hover:bg-[#7A263A] hover:text-white disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:text-base"
+                className={`${actionClass} border border-[#7A263A] text-[#7A263A] hover:bg-[#7A263A] hover:text-white disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 {isPending ? "Signing Out..." : "Sign Out"}
               </button>
             ) : (
               <Link
                 href="/login"
-                className="whitespace-nowrap rounded-lg border border-[#7A263A] px-3 py-2 text-sm font-semibold text-[#7A263A] transition hover:bg-[#7A263A] hover:text-white sm:px-4 sm:text-base"
+                className={`${actionClass} border border-[#7A263A] text-[#7A263A] hover:bg-[#7A263A] hover:text-white`}
               >
                 Sign In
               </Link>
@@ -106,7 +117,11 @@ function Header({ customer }) {
         </div>
       </header>
 
-      <CartDrawer isOpen={cartOpen} onClose={closeCartDrawer} />
+      {/* Existing Cart Drawer */}
+      <CartDrawer
+        isOpen={cartOpen}
+        onClose={closeCartDrawer}
+      />
     </>
   );
 }
