@@ -1,0 +1,684 @@
+
+@import "tailwindcss";
+
+/* =========================================
+   ADDIS EATS — GLOBAL BASE
+========================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  max-width: 100%;
+  overflow-x: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f7f3ea;
+  color: #26352f;
+  line-height: 1.5;
+}
+
+/* Prevent media from overflowing its containers. */
+img,
+picture,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+img,
+video {
+  height: auto;
+}
+
+/* Keep form controls within their containers. */
+input,
+textarea,
+select,
+button {
+  max-width: 100%;
+  font: inherit;
+}
+
+input,
+textarea,
+select {
+  min-width: 0;
+}
+
+textarea {
+  resize: vertical;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+/* Allow long content and grid children to shrink properly. */
+main,
+section,
+article,
+aside,
+header,
+footer,
+nav,
+form {
+  min-width: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  overflow-wrap: break-word;
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =========================================
+   MENU LAYOUT
+========================================= */
+
+.menu-layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  background: #f7f3ea;
+}
+
+/* =========================================
+   MENU SIDEBAR
+========================================= */
+
+.menu-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 32px 20px;
+  background: #173d32;
+  color: #ffffff;
+  border-right: 1px solid #244d41;
+}
+
+.menu-sidebar h2 {
+  margin: 0 0 30px;
+  padding-left: 10px;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.menu-sidebar nav ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.menu-sidebar li {
+  margin: 0;
+}
+
+.menu-sidebar a {
+  display: block;
+  padding: 13px 14px;
+  border-radius: 12px;
+  color: #dce9e3;
+  font-size: 15px;
+  font-weight: 600;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.menu-sidebar a:hover {
+  background: #245746;
+  color: #ffffff;
+  transform: translateX(3px);
+}
+
+/* =========================================
+   MENU CONTENT
+========================================= */
+
+.menu-content {
+  min-width: 0;
+  padding: 45px;
+}
+
+.menu-content h1 {
+  margin: 0 0 10px;
+  color: #173d32;
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -1px;
+}
+
+.menu-content > a {
+  display: inline-block;
+  margin-bottom: 35px;
+  color: #176b4d;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.menu-content > a:hover {
+  color: #0f4e38;
+  text-decoration: underline;
+}
+
+.menu-content h2 {
+  margin: 0 0 25px;
+  color: #26352f;
+  font-size: 28px;
+  font-weight: 750;
+}
+
+/* =========================================
+   FILTER SHELL
+========================================= */
+
+.filter-shell {
+  width: 100%;
+  min-width: 0;
+}
+
+/* =========================================
+   DISH LIST
+========================================= */
+
+.dish-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* =========================================
+   DISH CARD
+========================================= */
+
+.dish-card {
+  min-width: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e5dfd3;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(23, 61, 50, 0.08);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.dish-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 35px rgba(23, 61, 50, 0.14);
+}
+
+/* =========================================
+   DISH IMAGE
+========================================= */
+
+.dish-card img {
+  display: block;
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+/* =========================================
+   DISH CARD CONTENT
+========================================= */
+
+.dish-card-content {
+  min-width: 0;
+  padding: 20px;
+}
+
+.dish-name {
+  display: inline-block;
+  margin-bottom: 9px;
+  color: #173d32;
+  font-size: 22px;
+  font-weight: 800;
+  transition: color 0.2s ease;
+}
+
+.dish-name:hover {
+  color: #176b4d;
+  text-decoration: none;
+}
+
+.dish-description {
+  margin: 0 0 15px;
+  color: #68766f;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.dish-price {
+  margin: 0 0 15px;
+  color: #176b4d;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.dish-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 13px;
+  border-top: 1px solid #eee8dc;
+  color: #7a857f;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* =========================================
+   SKELETON LOADING
+========================================= */
+
+.dish-skelton-gird {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.skelton-card {
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e5dfd3;
+  border-radius: 20px;
+}
+
+.skelton-image {
+  width: 100%;
+  height: 220px;
+  background: #e4dfd5;
+  animation: skeletonPulse 1.4s infinite;
+}
+
+.skelton-text {
+  height: 80px;
+  margin: 18px;
+  border-radius: 10px;
+  background: #e4dfd5;
+  animation: skeletonPulse 1.4s infinite;
+}
+
+@keyframes skeletonPulse {
+  0% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.55;
+  }
+}
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 1100px) {
+  .menu-layout {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+
+  .menu-content {
+    padding: 35px 25px;
+  }
+
+  .menu-content h1 {
+    font-size: 36px;
+  }
+
+  .dish-list,
+  .dish-skelton-gird {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 700px) {
+  .menu-layout {
+    display: block;
+  }
+
+  .menu-sidebar {
+    position: static;
+    height: auto;
+    padding: 20px;
+  }
+
+  .menu-sidebar h2 {
+    margin-bottom: 15px;
+  }
+
+  .menu-sidebar nav ul {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 5px;
+  }
+
+  .menu-sidebar a {
+    white-space: nowrap;
+  }
+
+  .menu-content {
+    padding: 30px 18px 50px;
+  }
+
+  .menu-content h1 {
+    font-size: 32px;
+  }
+
+  .menu-content h2 {
+    font-size: 24px;
+  }
+
+  .dish-list,
+  .dish-skelton-gird {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dish-card img,
+  .skelton-image {
+    height: 230px;
+  }
+
+  .dish-card-content {
+    padding: 18px;
+  }
+
+  .dish-detail {
+    padding: 10px 14px 40px;
+  }
+
+  .dish-detail img {
+    height: 280px;
+    margin-bottom: 22px;
+    border-radius: 18px;
+  }
+
+  .dish-detail h1 {
+    font-size: 32px;
+  }
+
+  .dish-detail p {
+    font-size: 15px;
+  }
+
+  .dish-detail p:nth-of-type(2) {
+    font-size: 21px;
+  }
+}
+
+/* =========================================
+   SMALL MOBILE
+========================================= */
+
+@media (max-width: 420px) {
+  .menu-sidebar {
+    padding: 16px;
+  }
+
+  .menu-content {
+    padding: 25px 14px 40px;
+  }
+
+  .menu-content h1 {
+    font-size: 28px;
+  }
+
+  .menu-content h2 {
+    font-size: 22px;
+  }
+
+  .dish-list,
+  .dish-skelton-gird {
+    gap: 16px;
+  }
+
+  .dish-card-content {
+    padding: 15px;
+  }
+
+  .dish-name {
+    font-size: 20px;
+  }
+
+  .dish-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* =========================================
+   DISH DETAIL PAGE
+========================================= */
+
+.dish-detail {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 0 50px;
+}
+
+.dish-detail > a {
+  display: inline-block;
+  margin-bottom: 25px;
+  color: #176b4d;
+  font-size: 15px;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+
+.dish-detail > a:hover {
+  color: #0f4e38;
+  text-decoration: underline;
+}
+
+.dish-detail img {
+  display: block;
+  width: 100%;
+  max-width: 700px;
+  height: 420px;
+  margin: 0 auto 30px;
+  object-fit: cover;
+  border-radius: 22px;
+  box-shadow: 0 12px 30px rgba(23, 61, 50, 0.12);
+}
+
+.dish-detail h1 {
+  margin: 0 0 15px;
+  color: #173d32;
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.dish-detail p {
+  margin: 0 0 15px;
+  color: #68766f;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.dish-detail p:nth-of-type(2) {
+  color: #176b4d;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.dish-detail p:nth-of-type(3),
+.dish-detail p:nth-of-type(4) {
+  color: #7a857f;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* =========================================
+   VERY SMALL SCREENS
+========================================= */
+
+@media (max-width: 360px) {
+  .menu-content {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .menu-content h1 {
+    font-size: 26px;
+  }
+
+  .menu-sidebar {
+    padding: 12px;
+  }
+}
+
+
+/* =========================================
+   ADDIS EATS — PROJECT-WIDE DARK MODE
+========================================= */
+
+html[data-theme="dark"] body {
+  background-color: #151b18 !important;
+  color: #edf3ee !important;
+  color-scheme: dark;
+}
+
+/* Main page surfaces */
+html[data-theme="dark"] main,
+html[data-theme="dark"] section,
+html[data-theme="dark"] article,
+html[data-theme="dark"] aside,
+html[data-theme="dark"] .menu-layout,
+html[data-theme="dark"] .menu-content {
+  background-color: #151b18;
+  color: #edf3ee;
+}
+
+/* Common light backgrounds */
+html[data-theme="dark"] [class~="bg-white"],
+html[data-theme="dark"] [class~="bg-gray-50"],
+html[data-theme="dark"] [class~="bg-gray-100"],
+html[data-theme="dark"] [class~="bg-stone-50"],
+html[data-theme="dark"] [class~="bg-amber-50"],
+html[data-theme="dark"] [class~="bg-[#F2E8D5]"],
+html[data-theme="dark"] [class~="bg-[#f7f3ea]"] {
+  background-color: #202923 !important;
+}
+
+/* Common text colors */
+html[data-theme="dark"] [class~="text-[#2F2F2F]"],
+html[data-theme="dark"] [class~="text-[#26352f]"],
+html[data-theme="dark"] [class~="text-[#173d32]"],
+html[data-theme="dark"] [class~="text-gray-900"],
+html[data-theme="dark"] [class~="text-gray-800"],
+html[data-theme="dark"] [class~="text-gray-700"],
+html[data-theme="dark"] [class~="text-black"] {
+  color: #edf3ee !important;
+}
+
+/* Cards, panels, and borders */
+html[data-theme="dark"] .dish-card,
+html[data-theme="dark"] .skelton-card,
+html[data-theme="dark"] [class*="rounded"][class*="border"],
+html[data-theme="dark"] [class*="shadow"] {
+  border-color: #39483e;
+}
+
+html[data-theme="dark"] .dish-card,
+html[data-theme="dark"] .skelton-card {
+  background-color: #202923;
+}
+
+html[data-theme="dark"] .dish-description,
+html[data-theme="dark"] .dish-detail p {
+  color: #c0ccc4;
+}
+
+/* Forms */
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+  background-color: #202923 !important;
+  color: #edf3ee !important;
+  border-color: #536258 !important;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: #b4c0b8;
+}
+
+/* Dialogs, drawers, and popovers */
+html[data-theme="dark"] [role="dialog"],
+html[data-theme="dark"] [role="alertdialog"],
+html[data-theme="dark"] [data-radix-popper-content-wrapper] {
+  color: #edf3ee;
+}
+
+/* Footer and navigation */
+html[data-theme="dark"] header,
+html[data-theme="dark"] footer {
+  background-color: #202923 !important;
+  border-color: #39483e !important;
+}
+
+/* Keep images natural and buttons readable */
+html[data-theme="dark"] img {
+  opacity: 1;
+}
+
+html[data-theme="dark"] button:disabled {
+  opacity: 0.6;
+}
