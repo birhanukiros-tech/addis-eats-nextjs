@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
@@ -126,7 +125,30 @@ function LoginPage() {
             <p className="mt-3 text-[#666666]">
               {isAdminLogin
                 ? "Sign in to manage your Addis Eats orders."
-                : "Sign in to manage your Addis Eats orders."}
+                : "Sign in to order your favorite Ethiopian dishes."}
+            </p>
+          </div>
+
+          {/* Public portfolio demo credentials */}
+          <div className="mb-6 rounded-2xl border border-[#E8DDD8] bg-[#F8F4EC] p-4">
+            <h2 className="font-bold text-[#7A263A]">
+              {isAdminLogin
+                ? "Demo Admin Account"
+                : "Demo Customer Account"}
+            </h2>
+
+            <p className="mt-2 text-sm text-[#2F2F2F]">
+              <span className="font-semibold">Username:</span>{" "}
+              {isAdminLogin ? "kitchen" : "birhanu"}
+            </p>
+
+            <p className="mt-1 text-sm text-[#2F2F2F]">
+              <span className="font-semibold">Password:</span>{" "}
+              {isAdminLogin ? "Kitchen12!" : "Addis123!"}
+            </p>
+
+            <p className="mt-3 text-xs text-[#666666]">
+              Use these demo credentials to explore the Addis Eats.
             </p>
           </div>
 
@@ -174,15 +196,7 @@ function LoginPage() {
                 role="alert"
                 className="rounded-xl bg-[#F1E2E5] px-4 py-3 text-sm font-medium text-[#7A263A]"
               >
-                <p>{state.error}</p>
-
-                {isAdminLogin && (
-                  <p className="mt-2">
-                    For the staff demo, use username{" "}
-                    <strong>kitchen</strong> and password{" "}
-                    <strong>Kitchen12!</strong>.
-                  </p>
-                )}
+                {state.error}
               </div>
             )}
 
