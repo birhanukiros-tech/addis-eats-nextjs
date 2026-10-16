@@ -130,7 +130,7 @@ function CheckoutPage() {
       clearCart();
 
       // Keep the existing success-page route.
-      router.push("/checkout/success");
+      router.push(`/checkout/success?orderId=${encodeURIComponent(order.id)}`);
     } catch (error) {
       console.error("Could not place order locally:", error);
 
